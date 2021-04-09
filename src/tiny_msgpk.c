@@ -4,6 +4,7 @@
  * See the file "LICENSE" for more details.
  */
 #include "tiny_msgpk.h"
+#include <stdio.h>
 
 static msgpk_port_t hooks = {
     .malloc  = malloc,
@@ -14,15 +15,183 @@ static msgpk_port_t hooks = {
 #define MSGPK_CHK(a,b) if((a)==NULL) return (b);
 #define MSGPK_REQCHK(msgpk, sz, ret) if (msgpk_buf_mem_require((msgpk), (sz)) == -1)return (ret)
 
-int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz);
+int msgpk_add_uint(msgpk_t *msgpk, uint64_t dat)
+{
+    if (dat <= 127) {
+        return msgpk_add_positive_fixint(msgpk, dat);
+
+    } else if (dat <= 0xff) {
+        return msgpk_add_uint8(msgpk, dat);
+
+    } else if (dat <= 0xffff) {
+        return msgpk_add_uint16(msgpk, dat);
+
+    } else if (dat <= 0xffffffff) {
+        return msgpk_add_uint32(msgpk, dat);
+
+    } else if (dat <= 0xffffffffffffffff) {
+        return msgpk_add_uint64(msgpk, dat);
+
+    }
+    return -1;
+}
+
+int msgpk_add_int(msgpk_t *msgpk, int64_t dat)
+{
+    if ( dat <= 127 && dat >= 0 ) {
+        return msgpk_add_positive_fixint(msgpk, dat);
+
+    } else if ( dat > -31 && dat <= 0) {
+        return msgpk_add_negative_fixint(msgpk, dat);
+
+    } else if ( dat >= SCHAR_MIN && dat <= SCHAR_MAX ) {
+        return msgpk_add_int8(msgpk, dat);
+
+    } else if ( dat >= SHRT_MIN && dat <= SHRT_MAX ) {
+        return msgpk_add_int16(msgpk, dat);
+
+    } else if ( dat >= INT_MIN && dat <= INT_MAX ) {
+        return msgpk_add_int32(msgpk, dat);
+
+    } else if ( dat >= LLONG_MIN && dat <= LLONG_MAX ) {
+        return msgpk_add_int64(msgpk, dat);
+    }
+    return -1;
+}
+
+#if 0
+int msgpk_add_float(msgpk_t *msgpk, double f)
+{
+    union{
+        uint64_t u64;
+        double f64;
+        struct{
+            uint64_t m:52;
+            uint64_t e:11;
+        };
+    }fdat = {
+        .f64 = f
+    };
+
+    // IEEE754, single precision, e max = 2^8-1, m max = 2^23-1
+    if (fdat.e - 1023 <= 0xff && fdat.m <= 8388607 && fdat.m > -8388607) {
+        printf("choose float32, e:%lx, m:%lx\n", fdat.e, fdat.m);
+        return msgpk_add_float32(msgpk, f);
+    } else {
+        printf("choose float64, e:%lx, m:%lx\n", fdat.e, fdat.m);
+        return msgpk_add_float64(msgpk, f);
+    }
+    return -1;
+}
+#endif
+
+int msgpk_add_str(msgpk_t *msgpk, char *str, uint32_t len)
+{
+    if (len <= 0x1f) {
+        return msgpk_add_fixstr(msgpk, str, len);
+
+    } else if (len <= 0xff) {
+        return msgpk_add_str8(msgpk, str, len);
+
+    } else if (len <= 0xffff) {
+        return msgpk_add_str16(msgpk, str, len);
+
+    } else if (len <= 0xffffffff) {
+        return msgpk_add_str32(msgpk, str, len);
+    }
+    return -1;
+}
+
+int msgpk_add_bin(msgpk_t *msgpk, uint8_t *dat, uint32_t len)
+{
+    if (len <= 0xff) {
+        return msgpk_add_bin8(msgpk, dat, len);
+
+    } else if (len <= 0xffff) {
+        return msgpk_add_bin16(msgpk, dat, len);
+
+    } else if (len <= 0xffffffff) {
+        return msgpk_add_bin32(msgpk, dat, len);
+    }
+    return -1;
+}
+
+int msgpk_add_ext(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len)
+{
+    if (len == 1) {
+        return msgpk_add_fixext1(msgpk, type, dat);
+
+    }else if (len == 2) {
+        return msgpk_add_fixext2(msgpk, type, dat);
+
+    } else if (len == 4) {
+        return msgpk_add_fixext4(msgpk, type, dat);
+
+    } else if (len == 8) {
+        return msgpk_add_fixext8(msgpk, type, dat);
+
+    } else if (len == 16) {
+        return msgpk_add_fixext16(msgpk, type, dat);
+
+    } else if (len <= 0xff) {
+        return msgpk_add_ext8(msgpk, type, dat, len);
+
+    } else if (len <= 0xffff) {
+        return msgpk_add_ext16(msgpk, type, dat, len);
+
+    } else if (len <= 0xffffffff) {
+        return msgpk_add_ext32(msgpk, type, dat, len);
+
+    }
+    return -1;
+}
+
+int msgpk_add_arr(msgpk_t *msgpk, uint32_t num)
+{
+    if (num <= 0x0f) {
+        return msgpk_add_fixarr(msgpk, num);
+
+    } else if (num <= 0xffff) {
+        return msgpk_add_arr16(msgpk, num);
+
+    } else if (num <= 0xffffffff) {
+        return msgpk_add_arr32(msgpk, num);
+
+    }
+    return -1;
+}
+
+int msgpk_add_map(msgpk_t *msgpk, uint32_t num)
+{
+    if (num <= 0x0f) {
+        return msgpk_add_fixmap(msgpk, num);
+
+    } else if (num <= 0xffff) {
+        return msgpk_add_map16(msgpk, num);
+
+    } else if (num <= 0xffffffff) {
+        return msgpk_add_map32(msgpk, num);
+
+    }
+    return -1;
+}
 
 int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num)
 {
+    uint8_t dat = 0;
     MSGPK_CHK(msgpk,-1);
-    MSGPK_REQCHK(msgpk, 5,-1);
+    if (num < -31)return -1;
+    MSGPK_REQCHK(msgpk, 1,-1);
+
+    dat = num & 0x1f;
+    dat |= 0xe0;
+
+    msgpk->msgpk_buf[msgpk->msgpk_sz] = dat;
+    msgpk->msgpk_sz += 1;
+    return 1;
 }
 
-int msgpk_add_map32(msgpk_t *msgpk, uint16_t num)
+int msgpk_add_map32(msgpk_t *msgpk, uint32_t num)
 {
     MSGPK_CHK(msgpk,-1);
     MSGPK_REQCHK(msgpk, 5,-1);
@@ -391,7 +560,7 @@ int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     return 1;
 }
 
-int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t dat)
+int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
     MSGPK_CHK(msgpk,-1);
     if (type < 0)return -1;
@@ -399,7 +568,7 @@ int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t dat)
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_FIXEXT1;
     msgpk->msgpk_buf[msgpk->msgpk_sz+1] = type;
-    msgpk->msgpk_buf[msgpk->msgpk_sz+2] = dat;
+    msgpk->msgpk_buf[msgpk->msgpk_sz+2] = *dat;
     msgpk->msgpk_sz+=3;
 
     return 1;

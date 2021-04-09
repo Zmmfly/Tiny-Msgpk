@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-// #include <limits.h>
+#include <limits.h>
 
 // #define MSGPK_LMT_PFIXINT_MAX   127
 // #define MSGPK_LMT_NFIXINT_MAX   -32
@@ -87,19 +87,46 @@ typedef struct msgpk
     size_t msgpk_sz;
 }msgpk_t;
 
+int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz);
 msgpk_t *msgpk_create(size_t init_sz, size_t step_sz);
 int msgpk_delete(msgpk_t *msgpk);
+
 int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num);
-int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num);
-int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num);
-int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len);
+int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num);
+
 int msgpk_add_nil(msgpk_t *msgpk);
 int msgpk_add_false(msgpk_t *msgpk);
 int msgpk_add_true(msgpk_t *msgpk);
+
+int msgpk_add_uint(msgpk_t *msgpk, uint64_t dat);   //TODO
+int msgpk_add_uint8(msgpk_t *msgpk, uint8_t dat);
+int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat);
+int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat);
+int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat);
+
+int msgpk_add_int(msgpk_t *msgpk, int64_t dat); //TODO
+int msgpk_add_int8(msgpk_t *msgpk, int8_t dat);
+int msgpk_add_int16(msgpk_t *msgpk, int16_t dat);
+int msgpk_add_int32(msgpk_t *msgpk, int32_t dat);
+int msgpk_add_int64(msgpk_t *msgpk, int64_t dat);
+
+// int msgpk_add_float(msgpk_t *msgpk, double f);  //TODO
+int msgpk_add_float32(msgpk_t *msgpk, float f);
+int msgpk_add_float64(msgpk_t *msgpk, double f);
+
+int msgpk_add_str(msgpk_t *msgpk, char *str, uint32_t len); //TODO
+int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len);
+int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len);
+int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len);
+int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len);
+
+int msgpk_add_bin(msgpk_t *msgpk, uint8_t *dat, uint32_t len);      //TODO
 int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len);
 int msgpk_add_bin16(msgpk_t *msgpk, uint8_t *dat, uint16_t len);
 int msgpk_add_bin32(msgpk_t *msgpk, uint8_t *dat, uint32_t len);
-int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t dat);
+
+int msgpk_add_ext(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len); //TODO
+int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat);
 int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat);
 int msgpk_add_fixext4(msgpk_t *msgpk, int8_t type, uint8_t *dat);
 int msgpk_add_fixext8(msgpk_t *msgpk, int8_t type, uint8_t *dat);
@@ -107,22 +134,15 @@ int msgpk_add_fixext16(msgpk_t *msgpk, int8_t type, uint8_t *dat);
 int msgpk_add_ext8(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint8_t len);
 int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len);
 int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len);
-int msgpk_add_float32(msgpk_t *msgpk, float f);
-int msgpk_add_float64(msgpk_t *msgpk, double f);
-int msgpk_add_uint8(msgpk_t *msgpk, uint8_t dat);
-int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat);
-int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat);
-int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat);
-int msgpk_add_int8(msgpk_t *msgpk, int8_t dat);
-int msgpk_add_int16(msgpk_t *msgpk, int16_t dat);
-int msgpk_add_int32(msgpk_t *msgpk, int32_t dat);
-int msgpk_add_int64(msgpk_t *msgpk, int64_t dat);
-int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len);
-int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len);
-int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len);
+
+int msgpk_add_arr(msgpk_t *msgpk, uint32_t num);    //TODO
+int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num);
 int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num);
 int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num);
+
+int msgpk_add_map(msgpk_t *msgpk, uint32_t num);  //TODO
+int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num);
 int msgpk_add_map16(msgpk_t *msgpk, uint16_t num);
-int msgpk_add_map32(msgpk_t *msgpk, uint16_t num);
+int msgpk_add_map32(msgpk_t *msgpk, uint32_t num);
 
 #endif
