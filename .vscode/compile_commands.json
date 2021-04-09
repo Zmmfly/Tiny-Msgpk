@@ -1,0 +1,6 @@
+[
+{
+  "directory": "S:\\OpenSourceLib\\tiny-msgpk",
+  "arguments": ["R:\\Compiler\\mingw64\\bin\\x86_64-w64-mingw32-gcc", "-c", "-m64", "-Iinclude", "-o", "build\\.objs\\Tiny-Msgpk\\mingw\\x86_64\\release\\src\\tiny_msgpk.c.obj", "src\\tiny_msgpk.c"],
+  "file": "src\\tiny_msgpk.c"
+}]
