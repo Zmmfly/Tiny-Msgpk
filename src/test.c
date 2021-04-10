@@ -13,6 +13,113 @@ void prHex(uint8_t *data, size_t len)
     if(len % 16)printf("\n");
 }
 
+void parse(uint8_t *dat, size_t length)
+{
+    msgpk_parse_t parse;
+    msgpk_decode_t decode;
+
+    printf("Parse  init\n");
+    msgpk_parse_init(&parse, dat, length);
+
+    printf("Parse  start\n");
+    // for (int i=0; i<120; i++)
+    do
+    {
+        if ( msgpk_parse_get(&parse, &decode) == -1) break;
+        switch (decode.type_dec)
+        {
+            case MSGPK_INT8:
+                printf("INT8:%d\n", decode.i8);
+                break;
+
+            case MSGPK_INT16:
+                printf("INT16:%d\n", decode.i16);
+                break;
+
+            case MSGPK_INT32:
+                printf("INT32:%d\n", decode.i32);
+                break;
+
+            case MSGPK_INT64:
+                printf("INT64:%lld\n", decode.i64);
+                break;
+
+            case MSGPK_UINT8:
+                printf("UINT8:%u\n", decode.u8);
+                break;
+
+            case MSGPK_UINT16:
+                printf("UINT16:%u\n", decode.u16);
+                break;
+
+            case MSGPK_UINT32:
+                printf("UINT32:%u\n", decode.u32);
+                break;
+
+            case MSGPK_UINT64:
+                printf("UINT64:%llu\n", decode.u64);
+                break;
+
+            case MSGPK_FLOAT32:
+                printf("FLOAT32:%f\n", decode.f32);
+                break;
+
+            case MSGPK_FLOAT64:
+                printf("FLOAT64:%f\n", decode.f64);
+                break;
+
+            case MSGPK_STRING:
+                printf("STRING:%.*s\n", decode.length, decode.str);
+                break;
+
+            case MSGPK_NIL:
+                printf("NIL\n");
+                break;
+
+            case MSGPK_FALSE:
+                printf("FALSE\n");
+                break;
+
+            case MSGPK_TRUE:
+                printf("TRUE\n");
+                break;
+
+            case MSGPK_MAP:
+                printf("MAP:%u\n", decode.length);
+                break;
+
+            case MSGPK_ARR:
+                printf("ARR:%u\n", decode.length);
+                break;
+
+            case MSGPK_BIN:
+                printf("BIN:%u\n", decode.length);
+                prHex(decode.bin, decode.length);
+                break;
+
+            case MSGPK_EXT:
+                printf("EXT: type(%u), length(%u)\n", decode.type_ext, decode.length);
+                prHex(decode.bin, decode.length);
+                break;
+
+            case MSGPK_TIMESTAMP:
+                printf("EXT: Timestamp\n");
+                break;
+        
+            default:
+                break;
+        }
+        // if ( msgpk_parse_next(&parse) == -1 )
+        // {
+        //     printf("end\n");
+        //     return;
+        // }
+    }
+    while(msgpk_parse_next(&parse) != -1);
+    printf("end\n");
+    return;
+}
+
 int main(void)
 {
     msgpk_t *msgpk = NULL;
@@ -111,5 +218,6 @@ int main(void)
     exit:
     prHex(msgpk->msgpk_buf, msgpk->msgpk_sz);
     printf("Msgpk: bufsz(%u), msgsz(%u)\n", msgpk->buf_sz, msgpk->msgpk_sz);
+    parse(msgpk->msgpk_buf, msgpk->msgpk_sz);
     return 0;
 }

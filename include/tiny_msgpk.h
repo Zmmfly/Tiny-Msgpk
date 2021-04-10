@@ -6,11 +6,19 @@
 #ifndef __TINY_MSGPK_H__
 #define __TINY_MSGPK_H__
 
-// #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 #include <limits.h>
+
+#ifndef RDWR_INLINE
+#define RDWR_INLINE
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // #define MSGPK_LMT_PFIXINT_MAX   127
 // #define MSGPK_LMT_NFIXINT_MAX   -32
@@ -28,8 +36,8 @@
 
 
 typedef enum tinymsgpk_format{
-    FMTF_POSFIXINT = 0x00,
-    FMTM_POSFIXINT = 0b10000000,
+    FMTF_PFIXINT = 0x00,
+    FMTM_PFIXINT = 0b10000000,
     FMTF_FIXMAP    = 0x80,
     FMTM_FIXMAP    = 0b11110000,
     FMTF_FIXARR    = 0x90,
@@ -75,6 +83,7 @@ typedef enum tinymsgpk_format{
 typedef struct msgpk_port
 {
     void *(*malloc)(size_t);
+    void *(*calloc)(size_t, size_t);
     void (*free)(void *);
     void *(*realloc)(void*, size_t);
 }msgpk_port_t;
@@ -86,6 +95,62 @@ typedef struct msgpk
     size_t buf_stepsz;
     size_t msgpk_sz;
 }msgpk_t;
+
+typedef struct msgpk_parse
+{
+    msgpk_t *pk;
+    size_t idx_cur;
+    size_t idx_nxt;
+}msgpk_parse_t;
+
+typedef enum msgpk_type{
+    MSGPK_INT8 = 0x00,
+    MSGPK_INT16,
+    MSGPK_INT32,
+    MSGPK_INT64,
+    MSGPK_UINT8,
+    MSGPK_UINT16,
+    MSGPK_UINT32,
+    MSGPK_UINT64,
+    MSGPK_FLOAT32,
+    MSGPK_FLOAT64,
+    MSGPK_STRING,
+    MSGPK_NIL,
+    MSGPK_FALSE,
+    MSGPK_TRUE,
+    MSGPK_MAP,
+    MSGPK_ARR,
+    MSGPK_BIN,
+    MSGPK_EXT,
+    MSGPK_TIMESTAMP
+}msgpk_type_t;
+
+typedef struct msgpk_decode
+{
+    msgpk_type_t type_dec;
+    uint8_t type_ext;
+    union
+    {
+        uint64_t u64;
+        uint32_t u32;
+        uint16_t u16;
+        uint8_t u8;
+        int64_t i64;
+        int32_t i32;
+        int16_t i16;
+        int8_t i8;
+        float f32;
+        double f64;
+        char *str;
+        uint8_t *bin;
+        uint8_t *ext;
+    };
+    size_t length;
+
+}msgpk_decode_t;
+
+#define MSGPK_CHK(a,b) if((a)==NULL) return (b)
+#define MSGPK_REQCHK(msgpk, sz, ret) if (msgpk_buf_mem_require((msgpk), (sz)) == -1)return (ret)
 
 int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz);
 msgpk_t *msgpk_create(size_t init_sz, size_t step_sz);
@@ -144,5 +209,96 @@ int msgpk_add_map(msgpk_t *msgpk, uint32_t num);  //TODO
 int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num);
 int msgpk_add_map16(msgpk_t *msgpk, uint16_t num);
 int msgpk_add_map32(msgpk_t *msgpk, uint32_t num);
+
+int msgpk_parse_next(msgpk_parse_t *parse);
+int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec);
+uint8_t msgpk_parse_get_currnet_flag(msgpk_parse_t *parse);
+int msgpk_parse_deinit(msgpk_parse_t *parse);
+int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length);
+
+#ifndef RDWR_INLINE
+uint16_t msgpk_rd_u16_bigend(uint8_t *dat);
+uint32_t msgpk_rd_u32_bigend(uint8_t *dat);
+uint64_t msgpk_rd_u64_bigend(uint8_t *dat);
+void msgpk_wr_u16_bigend(uint8_t *dat, uint16_t u16);
+void msgpk_wr_u32_bigend(uint8_t *dat, uint32_t u32);
+void msgpk_wr_u64_bigend(uint8_t *dat, uint64_t u64);
+#else
+static __inline uint16_t msgpk_rd_u16_bigend(uint8_t *dat)
+{
+    uint16_t u16 = 0;
+    MSGPK_CHK(dat, 0);
+    u16   = *dat++;
+    u16 <<= 8;
+    u16  |= *dat;
+    return u16;
+}
+
+static __inline uint32_t msgpk_rd_u32_bigend(uint8_t *dat)
+{
+    uint32_t u32 = 0;
+    MSGPK_CHK(dat, 0);
+    u32   = *dat++;
+    u32 <<= 8;
+    u32  |= *dat++;
+    u32 <<= 8;
+    u32  |= *dat++;
+    u32 <<= 8;
+    u32  |= *dat;
+    return u32;
+}
+
+static __inline uint64_t msgpk_rd_u64_bigend(uint8_t *dat)
+{
+    uint64_t u64 = 0;
+    MSGPK_CHK(dat, 0);
+    u64   = *dat++;
+    u64 <<= 8;
+    u64  |= *dat++;
+    u64 <<= 8;
+    u64  |= *dat++;
+    u64 <<= 8;
+    u64  |= *dat++;
+    u64 <<= 8;
+    u64  |= *dat++;
+    u64 <<= 8;
+    u64  |= *dat++;
+    u64 <<= 8;
+    u64  |= *dat++;
+    u64 <<= 8;
+    u64  |= *dat;
+    return u64;
+}
+
+static __inline void msgpk_wr_u16_bigend(uint8_t *dat, uint16_t u16)
+{
+    *dat++ = u16>>8;
+    *dat   = u16;
+}
+
+static __inline void msgpk_wr_u32_bigend(uint8_t *dat, uint32_t u32)
+{
+    *dat++ = u32>>24;
+    *dat++ = u32>>16;
+    *dat++ = u32>>8;
+    *dat   = u32;
+}
+
+static __inline void msgpk_wr_u64_bigend(uint8_t *dat, uint64_t u64)
+{
+    *dat++ = u64>>56;
+    *dat++ = u64>>48;
+    *dat++ = u64>>40;
+    *dat++ = u64>>32;
+    *dat++ = u64>>24;
+    *dat++ = u64>>16;
+    *dat++ = u64>>8;
+    *dat   = u64;
+}
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
