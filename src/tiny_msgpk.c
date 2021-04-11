@@ -16,7 +16,7 @@ int msgpk_parse_next(msgpk_parse_t *parse)
 {
     if (parse->idx_nxt < parse->pk->msgpk_sz) {
         parse->idx_cur = parse->idx_nxt;
-        return 1;
+        return 0;
     }
     return -1;
 }
@@ -428,6 +428,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         default:
             break;
     }
+    return 0;
 }
 
 uint8_t msgpk_parse_get_currnet_flag(msgpk_parse_t *parse)
@@ -466,6 +467,7 @@ int msgpk_parse_deinit(msgpk_parse_t *parse)
     if (parse->pk) {
         hooks.free(parse->pk);
     }
+    return 0;
 }
 
 /**
@@ -486,7 +488,7 @@ int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length)
     parse->pk->msgpk_sz  = length;
     parse->idx_cur       = 0;
     parse->idx_nxt       = 0;
-    return 1;
+    return 0;
 }
 
 /**
@@ -689,7 +691,7 @@ int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num)
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = dat;
     msgpk->msgpk_sz += 1;
-    return 1;
+    return 0;
 }
 
 int msgpk_add_map32(msgpk_t *msgpk, uint32_t num)
@@ -701,7 +703,7 @@ int msgpk_add_map32(msgpk_t *msgpk, uint32_t num)
     msgpk_wr_u32_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, num);
     msgpk->msgpk_sz += 5;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_map16(msgpk_t *msgpk, uint16_t num)
@@ -713,7 +715,7 @@ int msgpk_add_map16(msgpk_t *msgpk, uint16_t num)
     msgpk_wr_u16_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, num);
     msgpk->msgpk_sz += 3;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num)
@@ -725,7 +727,7 @@ int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num)
     msgpk_wr_u32_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, num);
     msgpk->msgpk_sz += 5;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num)
@@ -737,7 +739,7 @@ int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num)
     msgpk_wr_u16_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, num);
     msgpk->msgpk_sz += 3;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len)
@@ -750,7 +752,7 @@ int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+5, str, len);
     msgpk->msgpk_sz += (len+5);
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len)
@@ -763,7 +765,7 @@ int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+3, str, len);
     msgpk->msgpk_sz += (len+3);
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len)
@@ -776,7 +778,7 @@ int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+2, str, len);
     msgpk->msgpk_sz += (len+2);
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_int64(msgpk_t *msgpk, int64_t dat)
@@ -788,7 +790,7 @@ int msgpk_add_int64(msgpk_t *msgpk, int64_t dat)
     msgpk_wr_u64_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat);
     msgpk->msgpk_sz+=9;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_int32(msgpk_t *msgpk, int32_t dat)
@@ -800,7 +802,7 @@ int msgpk_add_int32(msgpk_t *msgpk, int32_t dat)
     msgpk_wr_u32_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat);
     msgpk->msgpk_sz+=5;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_int16(msgpk_t *msgpk, int16_t dat)
@@ -812,7 +814,7 @@ int msgpk_add_int16(msgpk_t *msgpk, int16_t dat)
     msgpk_wr_u16_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat);
     msgpk->msgpk_sz+=3;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_int8(msgpk_t *msgpk, int8_t dat)
@@ -823,7 +825,7 @@ int msgpk_add_int8(msgpk_t *msgpk, int8_t dat)
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_INT8;
     msgpk->msgpk_buf[msgpk->msgpk_sz+1] = dat;
     msgpk->msgpk_sz += 2;
-    return 1;
+    return 0;
 }
 
 int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat)
@@ -835,7 +837,7 @@ int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat)
     msgpk_wr_u64_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat);
     msgpk->msgpk_sz+=9;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat)
@@ -847,7 +849,7 @@ int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat)
     msgpk_wr_u32_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat);
     msgpk->msgpk_sz+=5;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat)
@@ -859,7 +861,7 @@ int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat)
     msgpk_wr_u16_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat);
     msgpk->msgpk_sz+=3;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_uint8(msgpk_t *msgpk, uint8_t dat)
@@ -870,7 +872,7 @@ int msgpk_add_uint8(msgpk_t *msgpk, uint8_t dat)
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_UINT8;
     msgpk->msgpk_buf[msgpk->msgpk_sz+1] = dat;
     msgpk->msgpk_sz += 2;
-    return 1;
+    return 0;
 }
 
 int msgpk_add_float64(msgpk_t *msgpk, double f)
@@ -889,7 +891,7 @@ int msgpk_add_float64(msgpk_t *msgpk, double f)
     msgpk_wr_u64_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat.f_u64);
     msgpk->msgpk_sz += 9;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_float32(msgpk_t *msgpk, float f)
@@ -908,7 +910,7 @@ int msgpk_add_float32(msgpk_t *msgpk, float f)
     msgpk_wr_u32_bigend(msgpk->msgpk_buf+msgpk->msgpk_sz+1, dat.f_u32);
     msgpk->msgpk_sz += 5;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len)
@@ -923,7 +925,7 @@ int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+6, dat, len);
     msgpk->msgpk_sz+= (len+6);
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len)
@@ -938,7 +940,7 @@ int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+4, dat, len);
     msgpk->msgpk_sz+= (len+4);
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_ext8(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint8_t len)
@@ -953,7 +955,7 @@ int msgpk_add_ext8(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint8_t len)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+3, dat, len);
     msgpk->msgpk_sz+= (len+3);
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixext16(msgpk_t *msgpk, int8_t type, uint8_t *dat)
@@ -967,7 +969,7 @@ int msgpk_add_fixext16(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+2, dat, 16);
     msgpk->msgpk_sz+=18;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixext8(msgpk_t *msgpk, int8_t type, uint8_t *dat)
@@ -981,7 +983,7 @@ int msgpk_add_fixext8(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+2, dat, 8);
     msgpk->msgpk_sz+=10;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixext4(msgpk_t *msgpk, int8_t type, uint8_t *dat)
@@ -995,7 +997,7 @@ int msgpk_add_fixext4(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz+2, dat, 4);
     msgpk->msgpk_sz+=6;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat)
@@ -1010,7 +1012,7 @@ int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     msgpk->msgpk_buf[msgpk->msgpk_sz+3] = *dat;
     msgpk->msgpk_sz+=4;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat)
@@ -1024,7 +1026,7 @@ int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     msgpk->msgpk_buf[msgpk->msgpk_sz+2] = *dat;
     msgpk->msgpk_sz+=3;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_bin32(msgpk_t *msgpk, uint8_t *dat, uint32_t len)
@@ -1045,7 +1047,7 @@ int msgpk_add_bin32(msgpk_t *msgpk, uint8_t *dat, uint32_t len)
     memcpy(msgpk->msgpk_buf + msgpk->msgpk_sz, dat, len);
     msgpk->msgpk_sz+=len;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_bin16(msgpk_t *msgpk, uint8_t *dat, uint16_t len)
@@ -1064,7 +1066,7 @@ int msgpk_add_bin16(msgpk_t *msgpk, uint8_t *dat, uint16_t len)
     memcpy(msgpk->msgpk_buf + msgpk->msgpk_sz, dat, len);
     msgpk->msgpk_sz+=len;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len)
@@ -1081,7 +1083,7 @@ int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len)
     memcpy(msgpk->msgpk_buf + msgpk->msgpk_sz, dat, len);
     msgpk->msgpk_sz+=len;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_true(msgpk_t *msgpk)
@@ -1091,7 +1093,7 @@ int msgpk_add_true(msgpk_t *msgpk)
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_TRUE;
     msgpk->msgpk_sz++;
-    return 1;
+    return 0;
 }
 
 int msgpk_add_false(msgpk_t *msgpk)
@@ -1101,7 +1103,7 @@ int msgpk_add_false(msgpk_t *msgpk)
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_FALSE;
     msgpk->msgpk_sz++;
-    return 1;
+    return 0;
 }
 
 int msgpk_add_nil(msgpk_t *msgpk)
@@ -1111,7 +1113,7 @@ int msgpk_add_nil(msgpk_t *msgpk)
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_NIL;
     msgpk->msgpk_sz++;
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len)
@@ -1130,7 +1132,7 @@ int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len)
     memcpy(msgpk->msgpk_buf + msgpk->msgpk_sz, str, len);
     msgpk->msgpk_sz+=len;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num)
@@ -1146,7 +1148,7 @@ int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num)
     msgpk->msgpk_buf[msgpk->msgpk_sz] = num;
     msgpk->msgpk_sz++;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num)
@@ -1162,7 +1164,7 @@ int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num)
     msgpk->msgpk_buf[msgpk->msgpk_sz] = num;
     msgpk->msgpk_sz++;
 
-    return 1;
+    return 0;
 }
 
 int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
@@ -1175,7 +1177,7 @@ int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
     MSGPK_REQCHK(msgpk, 1,-1);
     msgpk->msgpk_buf[msgpk->msgpk_sz] = num;
     msgpk->msgpk_sz++;
-    return 1;
+    return 0;
 }
 
 #include <stdio.h>
@@ -1207,7 +1209,7 @@ int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz)
 
     msgpk->buf_sz = newsz;
 
-    return 1;
+    return 0;
 }
 
 /**
@@ -1220,7 +1222,7 @@ int msgpk_delete(msgpk_t *msgpk)
 {
     MSGPK_CHK(msgpk,-1);
     if (msgpk->msgpk_buf != NULL)hooks.free(msgpk->msgpk_buf);
-    return 1;
+    return 0;
 }
 
 /**

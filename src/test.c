@@ -22,7 +22,6 @@ void parse(uint8_t *dat, size_t length)
     msgpk_parse_init(&parse, dat, length);
 
     printf("Parse  start\n");
-    // for (int i=0; i<120; i++)
     do
     {
         if ( msgpk_parse_get(&parse, &decode) == -1) break;
@@ -109,13 +108,8 @@ void parse(uint8_t *dat, size_t length)
             default:
                 break;
         }
-        // if ( msgpk_parse_next(&parse) == -1 )
-        // {
-        //     printf("end\n");
-        //     return;
-        // }
     }
-    while(msgpk_parse_next(&parse) != -1);
+    while( !msgpk_parse_next(&parse) );
     printf("end\n");
     return;
 }
