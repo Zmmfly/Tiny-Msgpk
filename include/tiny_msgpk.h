@@ -217,6 +217,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec);
 uint8_t msgpk_parse_get_currnet_flag(msgpk_parse_t *parse);
 int msgpk_parse_deinit(msgpk_parse_t *parse);
 int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length);
+void msgpk_set_port(msgpk_port_t *port);
 
 #ifndef RDWR_INLINE
 uint16_t msgpk_rd_u16_bigend(uint8_t *dat);

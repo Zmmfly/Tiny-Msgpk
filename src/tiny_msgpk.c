@@ -1249,6 +1249,14 @@ msgpk_t *msgpk_create(size_t init_sz, size_t step_sz)
     return msgpk;
 }
 
+void msgpk_set_port(msgpk_port_t *port)
+{
+    if ( port->malloc != NULL ) hooks.malloc  = port->malloc;
+    if ( port->calloc != NULL ) hooks.malloc  = port->calloc;
+    if ( port->realloc != NULL ) hooks.malloc = port->realloc;
+    if ( port->free != NULL ) hooks.malloc    = port->free;
+}
+
 #ifndef RDWR_INLINE
 uint16_t msgpk_rd_u16_bigend(uint8_t *dat)
 {
