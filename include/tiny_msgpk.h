@@ -118,6 +118,7 @@ typedef enum msgpk_type{
     MSGPK_NIL,
     MSGPK_FALSE,
     MSGPK_TRUE,
+    MSGPK_BOOL,
     MSGPK_MAP,
     MSGPK_ARR,
     MSGPK_BIN,
@@ -144,6 +145,7 @@ typedef struct msgpk_decode
         char *str;
         uint8_t *bin;
         uint8_t *ext;
+        uint8_t boolean;
     };
     size_t length;
 

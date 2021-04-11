@@ -78,13 +78,15 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
 
         case FMTF_FALSE:
             MEMSZ_CHK(parse, 1);
-            dec->type_dec  = MSGPK_FALSE;
+            dec->type_dec  = MSGPK_BOOL;
+            dec->boolean   = 0;
             parse->idx_nxt = parse->idx_cur + 1;
             break;
 
         case FMTF_TRUE:
             MEMSZ_CHK(parse, 1);
-            dec->type_dec  = MSGPK_TRUE;
+            dec->type_dec  = MSGPK_BOOL;
+            dec->boolean   = 1;
             parse->idx_nxt = parse->idx_cur + 1;
             break;
 
