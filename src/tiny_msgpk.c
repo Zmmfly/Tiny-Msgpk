@@ -343,7 +343,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             MEMSZ_CHK(parse, 2);
             dec->type_dec = MSGPK_STRING;
             dec->length   = buf[parse->idx_cur+1];
-            dec->str      = buf+parse->idx_cur+2;
+            dec->str      = (char *)buf+parse->idx_cur+2;
             parse->idx_nxt = parse->idx_cur + 2 + dec->length;
             MEMSZ_CHK(parse, 2+dec->length);
             break;
@@ -354,7 +354,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->length   = buf[parse->idx_cur+1];
             dec->length <<= 8;
             dec->length  |= buf[parse->idx_cur+2];
-            dec->str      = buf+parse->idx_cur+3;
+            dec->str      = (char *)buf+parse->idx_cur+3;
             parse->idx_nxt = parse->idx_cur + 3 + dec->length;
             MEMSZ_CHK(parse, 3+dec->length);
             break;
@@ -369,7 +369,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->length  |= buf[parse->idx_cur+3];
             dec->length <<= 8;
             dec->length  |= buf[parse->idx_cur+4];
-            dec->str      = buf+parse->idx_cur+5;
+            dec->str      = (char *)buf+parse->idx_cur+5;
             parse->idx_nxt = parse->idx_cur + 5 + dec->length;
             MEMSZ_CHK(parse, 5+dec->length);
             break;
@@ -1259,9 +1259,9 @@ void msgpk_set_port(msgpk_port_t *port)
         return;
     }
     if ( port->malloc != NULL ) hooks.malloc  = port->malloc;
-    if ( port->calloc != NULL ) hooks.malloc  = port->calloc;
-    if ( port->realloc != NULL ) hooks.malloc = port->realloc;
-    if ( port->free != NULL ) hooks.malloc    = port->free;
+    if ( port->calloc != NULL ) hooks.calloc  = port->calloc;
+    if ( port->realloc != NULL ) hooks.realloc = port->realloc;
+    if ( port->free != NULL ) hooks.free    = port->free;
 }
 
 #ifndef RDWR_INLINE
