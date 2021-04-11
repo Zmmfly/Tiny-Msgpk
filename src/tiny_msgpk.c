@@ -1251,6 +1251,7 @@ msgpk_t *msgpk_create(size_t init_sz, size_t step_sz)
 
 void msgpk_set_port(msgpk_port_t *port)
 {
+    if (port == NULL)return;
     if ( port->malloc != NULL ) hooks.malloc  = port->malloc;
     if ( port->calloc != NULL ) hooks.malloc  = port->calloc;
     if ( port->realloc != NULL ) hooks.malloc = port->realloc;
