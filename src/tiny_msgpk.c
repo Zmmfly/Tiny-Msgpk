@@ -65,7 +65,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             MEMSZ_CHK(parse, 1);
             dec->type_dec  = MSGPK_STRING;
             dec->length    = buf[parse->idx_cur] & 0x1f;
-            dec->str       = buf+parse->idx_cur+1;
+            dec->str       = (char *)buf+parse->idx_cur+1;
             parse->idx_nxt = parse->idx_cur + 1 + dec->length;
             MEMSZ_CHK(parse, 1+dec->length);
             break;
@@ -1214,11 +1214,14 @@ int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz)
 
 /**
  * @brief Delete MessagePack
+ * @note yes = 1, not = 0
  * 
  * @param msgpk MessagePack pointer
+ * @param del_buf Delete msgpk_buf
+ * @param destory Destory the msgpk
  * @return int 
  */
-int msgpk_delete(msgpk_t *msgpk)
+int msgpk_delete(msgpk_t *msgpk, uint8_t del_buf, uint8_t destory)
 {
     MSGPK_CHK(msgpk,-1);
     if (msgpk->msgpk_buf != NULL)hooks.free(msgpk->msgpk_buf);
