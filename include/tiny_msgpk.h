@@ -160,6 +160,7 @@ typedef struct msgpk_decode
 int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz);
 msgpk_t *msgpk_create(size_t init_sz, size_t step_sz);
 int msgpk_delete(msgpk_t *msgpk, uint8_t del_buf, uint8_t destory);
+void msgpk_free(void *ptr);
 
 int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num);
 int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num);

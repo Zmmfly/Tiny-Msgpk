@@ -1233,6 +1233,11 @@ int msgpk_delete(msgpk_t *msgpk, uint8_t del_buf, uint8_t destory)
     return MSGPK_OK;
 }
 
+void msgpk_free(void *ptr)
+{
+    hooks.free(ptr);
+}
+
 /**
  * @brief Create MessagePack
  * 
