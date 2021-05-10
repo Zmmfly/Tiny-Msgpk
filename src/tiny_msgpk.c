@@ -1191,7 +1191,7 @@ int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
  */
 int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz)
 {
-    // uint8_t *newbuf = NULL;
+    uint8_t *newptr = NULL;
     size_t newsz = 0;
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (require_sz ==0) return MSGPK_OK;
@@ -1204,8 +1204,12 @@ int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz)
     newsz = ((1.0 * require_sz) / msgpk->buf_stepsz) < 1.0 ? msgpk->buf_sz + msgpk->buf_stepsz :
         msgpk->buf_sz + msgpk->buf_stepsz + require_sz;
     
-    msgpk->msgpk_buf = (uint8_t *)hooks.realloc(msgpk->msgpk_buf, newsz);
-    if (msgpk->msgpk_buf == NULL) return MSGPK_ERR;
+    newptr = (uint8_t *)hooks.realloc(msgpk->msgpk_buf, newsz);
+    if (newptr == NULL) {
+        return MSGPK_ERR;
+    } else {
+        msgpk->msgpk_buf = newptr;
+    }
 
     msgpk->buf_sz = newsz;
 
