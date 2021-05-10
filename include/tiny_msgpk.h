@@ -155,7 +155,7 @@ typedef struct msgpk_decode
 }msgpk_decode_t;
 
 #define MSGPK_CHK(a,b) if((a)==NULL) return (b)
-#define MSGPK_REQCHK(msgpk, sz, ret) if (msgpk_buf_mem_require((msgpk), (sz)) == -1)return (ret)
+#define MSGPK_REQCHK(msgpk, sz, ret) if (msgpk_buf_mem_require((msgpk), (sz)) == MSGPK_ERR)return (ret)
 
 int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz);
 msgpk_t *msgpk_create(size_t init_sz, size_t step_sz);
