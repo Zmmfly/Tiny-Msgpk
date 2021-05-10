@@ -16,6 +16,9 @@
 #define RDWR_INLINE
 #endif
 
+#define MSGPK_OK    0
+#define MSGPK_ERR   -1
+
 #ifdef __cplusplus
 extern "C" {
 #endif

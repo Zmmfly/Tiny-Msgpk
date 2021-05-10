@@ -1224,7 +1224,8 @@ int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz)
 int msgpk_delete(msgpk_t *msgpk, uint8_t del_buf, uint8_t destory)
 {
     MSGPK_CHK(msgpk,-1);
-    if (msgpk->msgpk_buf != NULL)hooks.free(msgpk->msgpk_buf);
+    if ( del_buf && msgpk->msgpk_buf != NULL)hooks.free(msgpk->msgpk_buf);
+    if ( destory )hooks.free(msgpk);
     return 0;
 }
 
