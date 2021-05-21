@@ -6,18 +6,33 @@
 #ifndef __TINY_MSGPK_H__
 #define __TINY_MSGPK_H__
 
+#ifndef RDWR_INLINE
+#define RDWR_INLINE
+#endif
+
+// Enable file encode or decode by 1, 0 for disable
+#ifndef USE_FILE
+#define USE_FILE 1
+#endif
+
+// Enable file parse inside open or provide FILE *fd
+#ifndef PARSE_INSIDE
+#define PARSE_INSIDE    1
+#endif
+
+// Enable file encode inside write or provide FILE *fd
+#ifndef ENCODE_INSIDE
+#define ENCODE_INSIDE   1
+#endif
+
+#define MSGPK_OK    0
+#define MSGPK_ERR   -1
+
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
-
-#ifndef RDWR_INLINE
-#define RDWR_INLINE
-#endif
-
-#define MSGPK_OK    0
-#define MSGPK_ERR   -1
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,6 +109,9 @@ typedef struct msgpk_port
 typedef struct msgpk
 {
     uint8_t *msgpk_buf;
+    #if USE_FILE == 1
+    FILE *msgpk_fd;
+    #endif
     size_t buf_sz;
     size_t buf_stepsz;
     size_t msgpk_sz;
@@ -129,6 +147,11 @@ typedef enum msgpk_type{
     MSGPK_TIMESTAMP
 }msgpk_type_t;
 
+/**
+ * @brief if parse from file, str|bin|ext will release after msgpk_parse_next
+ * @note if parse from memory, str and bin and ext, them pointer parsed buffer with offset
+ * 
+ */
 typedef struct msgpk_decode
 {
     msgpk_type_t type_dec;
@@ -146,6 +169,7 @@ typedef struct msgpk_decode
         float f32;
         double f64;
         char *str;
+        
         uint8_t *bin;
         uint8_t *ext;
         uint8_t boolean;
@@ -161,6 +185,12 @@ int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz);
 msgpk_t *msgpk_create(size_t init_sz, size_t step_sz);
 int msgpk_delete(msgpk_t *msgpk, uint8_t del_buf, uint8_t destory);
 void msgpk_free(void *ptr);
+
+#if ENCODE_INSIDE == 1
+msgpk_t *msgpk_create_file(const char *file_path, int64_t maxLen);
+#else
+msgpk_t *msgpk_create_file(FILE *fd, int64_t maxLen);
+#endif
 
 int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num);
 int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num);
@@ -218,9 +248,18 @@ int msgpk_add_map32(msgpk_t *msgpk, uint32_t num);
 
 int msgpk_parse_next(msgpk_parse_t *parse);
 int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec);
+uint8_t msgpk_parse_get_currnet_byte(msgpk_parse_t *parse, size_t offset);
 uint8_t msgpk_parse_get_currnet_flag(msgpk_parse_t *parse);
+uint8_t *msgpk_parse_get_buf(msgpk_parse_t *parse, size_t offset, size_t length);
 int msgpk_parse_deinit(msgpk_parse_t *parse);
 int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length);
+
+#if PARSE_INSIDE == 1
+int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, const char *file_path);
+#else
+int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *fd);
+#endif
+
 void msgpk_set_port(msgpk_port_t *port);
 
 #ifndef RDWR_INLINE

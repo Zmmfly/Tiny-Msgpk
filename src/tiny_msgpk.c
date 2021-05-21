@@ -14,6 +14,8 @@ static msgpk_port_t hooks = {
 
 int msgpk_parse_next(msgpk_parse_t *parse)
 {
+    MSGPK_CHK(parse,MSGPK_ERR);
+
     if (parse->idx_nxt < parse->pk->msgpk_sz) {
         parse->idx_cur = parse->idx_nxt;
         return MSGPK_OK;
@@ -34,38 +36,54 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
     MSGPK_CHK(parse,MSGPK_ERR);
     MSGPK_CHK(dec,MSGPK_ERR);
 
-    uint8_t *buf = parse->pk->msgpk_buf;
+    if (dec->str != NULL && parse->pk->msgpk_fd) {
+        hooks.free(dec->str);
+        dec->str = NULL;
+    }
+
+    if (dec->bin != NULL && parse->pk->msgpk_fd) {
+        hooks.free(dec->bin);
+        dec->bin = NULL;
+    }
+
+    if (dec->ext != NULL && parse->pk->msgpk_fd) {
+        hooks.free(dec->ext);
+        dec->ext = NULL;
+    }
+
+    // uint8_t *buf = parse->pk->msgpk_buf;
     dec->u64 = 0;
 
-    uint8_t flag = buf[parse->idx_cur];
+    // uint8_t flag = buf[parse->idx_cur];
     switch (msgpk_parse_get_currnet_flag(parse))
     {
         case FMTF_PFIXINT:
             MEMSZ_CHK(parse, 1);
             dec->type_dec  = MSGPK_UINT8;
-            dec->u64       = buf[parse->idx_cur] & 0x7f;
+            dec->u64       = msgpk_parse_get_currnet_byte(parse, 0) & 0x7f;
             parse->idx_nxt = parse->idx_cur + 1;
             break;
 
         case FMTF_FIXMAP:
             MEMSZ_CHK(parse, 1);
             dec->type_dec  = MSGPK_MAP;
-            dec->length    = buf[parse->idx_cur] & 0x0f;
+            dec->length    = msgpk_parse_get_currnet_byte(parse, 0) & 0x0f;
             parse->idx_nxt = parse->idx_cur + 1;
             break;
 
         case FMTF_FIXARR:
             MEMSZ_CHK(parse, 1);
             dec->type_dec  = MSGPK_ARR;
-            dec->length    = buf[parse->idx_cur] & 0x0f;
+            dec->length    = msgpk_parse_get_currnet_byte(parse, 0) & 0x0f;
             parse->idx_nxt = parse->idx_cur + 1;
             break;
 
         case FMTF_FIXSTR:
             MEMSZ_CHK(parse, 1);
             dec->type_dec  = MSGPK_STRING;
-            dec->length    = buf[parse->idx_cur] & 0x1f;
-            dec->str       = (char *)buf+parse->idx_cur+1;
+            dec->length    = msgpk_parse_get_currnet_byte(parse, 0) & 0x1f;
+            // dec->str       = (char *)buf+parse->idx_cur+1;
+            dec->str       = (char *)msgpk_parse_get_buf(parse, 1, dec->length);
             parse->idx_nxt = parse->idx_cur + 1 + dec->length;
             MEMSZ_CHK(parse, 1+dec->length);
             break;
@@ -93,8 +111,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_BIN8:
             MEMSZ_CHK(parse, 2);
             dec->type_dec  = MSGPK_BIN;
-            dec->length    = buf[parse->idx_cur+1];
-            dec->bin       = buf+parse->idx_cur+2;
+            dec->length    = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->bin       = msgpk_parse_get_buf(parse, 2, dec->length);
             parse->idx_nxt = parse->idx_cur + 2 + dec->length;
             MEMSZ_CHK(parse, 2+dec->length);
             break;
@@ -102,10 +120,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_BIN16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_BIN;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
-            dec->bin      = buf+parse->idx_cur+3;
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
+            dec->bin      = msgpk_parse_get_buf(parse, 3, dec->length);
             parse->idx_nxt = parse->idx_cur + 3 + dec->length;
             MEMSZ_CHK(parse, 3+dec->length);
             break;
@@ -113,14 +131,14 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_BIN32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec  = MSGPK_BIN;
-            dec->length    = buf[parse->idx_cur+1];
+            dec->length    = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length  <<= 8;
-            dec->length   |= buf[parse->idx_cur+2];
+            dec->length   |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->length  <<= 8;
-            dec->length   |= buf[parse->idx_cur+3];
+            dec->length   |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length  <<= 8;
-            dec->length   |= buf[parse->idx_cur+4];
-            dec->bin       = buf+parse->idx_cur+5;
+            dec->length   |= msgpk_parse_get_currnet_byte(parse, 4);
+            dec->bin       = msgpk_parse_get_buf(parse, 5, dec->length);
             parse->idx_nxt = parse->idx_cur + 5 + dec->length;
             MEMSZ_CHK(parse, 5+dec->length);
             break;
@@ -128,169 +146,169 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_EXT8:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_EXT;
-            dec->length   = buf[parse->idx_cur+1];
-            dec->type_ext = buf[parse->idx_cur+2];
-            dec->bin      = buf + parse->idx_cur+3;
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 2);
+            dec->bin      = msgpk_parse_get_buf(parse, 3, dec->length);
             parse->idx_nxt = parse->idx_cur + 3 + dec->length;
             break;
 
         case FMTF_EXT16:
             MEMSZ_CHK(parse, 4);
             dec->type_dec = MSGPK_EXT;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
-            dec->type_ext = buf[parse->idx_cur+3];
-            dec->bin      = buf + parse->idx_cur+4;
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 3);
+            dec->bin      = msgpk_parse_get_buf(parse, 4, dec->length);
             parse->idx_nxt = parse->idx_cur + 4 + dec->length;
             break;
 
         case FMTF_EXT32:
             MEMSZ_CHK(parse, 6);
             dec->type_dec = MSGPK_EXT;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+3];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+4];
-            dec->type_ext = buf[parse->idx_cur+5];
-            dec->bin      = buf + parse->idx_cur+6;
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 5);
+            dec->bin      = msgpk_parse_get_buf(parse, 6, dec->length);
             parse->idx_nxt = parse->idx_cur + 6 + dec->length;
             break;
 
         case FMTF_FLOAT32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_FLOAT32;
-            dec->u32      = buf[parse->idx_cur+1];
+            dec->u32      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+2];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+3];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+4];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 4);
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_FLOAT64:
             MEMSZ_CHK(parse, 9);
             dec->type_dec = MSGPK_FLOAT64;
-            dec->u64      = buf[parse->idx_cur+1];
+            dec->u64      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+2];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+3];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+4];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 4);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+5];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 5);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+6];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 6);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+7];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 7);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+8];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 8);
             parse->idx_nxt = parse->idx_cur + 9;
             break;
 
         case FMTF_UINT8:
             MEMSZ_CHK(parse, 2);
             dec->type_dec = MSGPK_UINT8;
-            dec->u8       = buf[parse->idx_cur+1];
+            dec->u8       = msgpk_parse_get_currnet_byte(parse, 1);
             parse->idx_nxt = parse->idx_cur + 2;
             break;
 
         case FMTF_UINT16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_UINT16;
-            dec->u16      = buf[parse->idx_cur+1];
+            dec->u16      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u16    <<= 8;
-            dec->u16     |= buf[parse->idx_cur+2];
+            dec->u16     |= msgpk_parse_get_currnet_byte(parse, 2);
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_UINT32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_UINT32;
-            dec->u32      = buf[parse->idx_cur+1];
+            dec->u32      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+2];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+3];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+4];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 4);
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_UINT64:
             MEMSZ_CHK(parse, 9);
             dec->type_dec = MSGPK_UINT64;
-            dec->u64      = buf[parse->idx_cur+1];
+            dec->u64      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+2];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+3];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+4];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 4);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+5];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 5);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+6];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 6);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+7];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 7);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+8];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 8);
             parse->idx_nxt = parse->idx_cur + 9;
             break;
 
         case FMTF_INT8:
             MEMSZ_CHK(parse, 2);
             dec->type_dec = MSGPK_INT8;
-            dec->u8       = buf[parse->idx_cur+1];
+            dec->u8       = msgpk_parse_get_currnet_byte(parse, 1);
             parse->idx_nxt = parse->idx_cur + 2;
             break;
 
         case FMTF_INT16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_INT16;
-            dec->u16      = buf[parse->idx_cur+1];
+            dec->u16      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u16    <<= 8;
-            dec->u16     |= buf[parse->idx_cur+2];
+            dec->u16     |= msgpk_parse_get_currnet_byte(parse, 2);
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_INT32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_INT32;
-            dec->u32      = buf[parse->idx_cur+1];
+            dec->u32      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+2];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+3];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u32    <<= 8;
-            dec->u32     |= buf[parse->idx_cur+4];
+            dec->u32     |= msgpk_parse_get_currnet_byte(parse, 4);
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_INT64:
             MEMSZ_CHK(parse, 9);
             dec->type_dec = MSGPK_INT64;
-            dec->u64      = buf[parse->idx_cur+1];
+            dec->u64      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+2];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+3];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+4];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 4);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+5];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 5);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+6];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 6);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+7];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 7);
             dec->u64    <<= 8;
-            dec->u64     |= buf[parse->idx_cur+8];
+            dec->u64     |= msgpk_parse_get_currnet_byte(parse, 8);
             parse->idx_nxt = parse->idx_cur + 9;
             break;
 
@@ -298,17 +316,18 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_EXT;
             dec->length   = 1;
-            dec->type_ext = buf[parse->idx_cur+1];
-            dec->bin      = buf+parse->idx_cur+2;
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->bin      = msgpk_parse_get_buf(parse, 2, dec->length);
             parse->idx_nxt = parse->idx_cur + 3;
             break;
+
 
         case FMTF_FIXEXT2:
             MEMSZ_CHK(parse, 4);
             dec->type_dec = MSGPK_EXT;
             dec->length   = 2;
-            dec->type_ext = buf[parse->idx_cur+1];
-            dec->bin      = buf+parse->idx_cur+2;
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->bin      = msgpk_parse_get_buf(parse, 2, dec->length);
             parse->idx_nxt = parse->idx_cur + 4;
             break;
 
@@ -316,8 +335,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             MEMSZ_CHK(parse, 6);
             dec->type_dec = MSGPK_EXT;
             dec->length   = 4;
-            dec->type_ext = buf[parse->idx_cur+1];
-            dec->bin      = buf+parse->idx_cur+2;
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->bin      = msgpk_parse_get_buf(parse, 2, dec->length);
             parse->idx_nxt = parse->idx_cur + 6;
             break;
 
@@ -325,8 +344,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             MEMSZ_CHK(parse, 10);
             dec->type_dec = MSGPK_EXT;
             dec->length   = 8;
-            dec->type_ext = buf[parse->idx_cur+1];
-            dec->bin      = buf+parse->idx_cur+2;
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->bin      = msgpk_parse_get_buf(parse, 2, dec->length);
             parse->idx_nxt = parse->idx_cur + 10;
             break;
 
@@ -334,16 +353,16 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             MEMSZ_CHK(parse, 18);
             dec->type_dec = MSGPK_EXT;
             dec->length   = 16;
-            dec->type_ext = buf[parse->idx_cur+1];
-            dec->bin      = buf+parse->idx_cur+2;
+            dec->type_ext = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->bin      = msgpk_parse_get_buf(parse, 2, dec->length);
             parse->idx_nxt = parse->idx_cur + 18;
             break;
 
         case FMTF_STR8:
             MEMSZ_CHK(parse, 2);
             dec->type_dec = MSGPK_STRING;
-            dec->length   = buf[parse->idx_cur+1];
-            dec->str      = (char *)buf+parse->idx_cur+2;
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
+            dec->str      = (char *)msgpk_parse_get_buf(parse, 2, dec->length);
             parse->idx_nxt = parse->idx_cur + 2 + dec->length;
             MEMSZ_CHK(parse, 2+dec->length);
             break;
@@ -351,10 +370,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_STR16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_STRING;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
-            dec->str      = (char *)buf+parse->idx_cur+3;
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
+            dec->str      = (char *)msgpk_parse_get_buf(parse, 3, dec->length);
             parse->idx_nxt = parse->idx_cur + 3 + dec->length;
             MEMSZ_CHK(parse, 3+dec->length);
             break;
@@ -362,14 +381,14 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_STR32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_STRING;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+3];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+4];
-            dec->str      = (char *)buf+parse->idx_cur+5;
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
+            dec->str      = (char *)msgpk_parse_get_buf(parse, 5, dec->length);
             parse->idx_nxt = parse->idx_cur + 5 + dec->length;
             MEMSZ_CHK(parse, 5+dec->length);
             break;
@@ -377,51 +396,51 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_ARR16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_ARR;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_ARR32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_ARR;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+3];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+4];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_MAP16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_MAP;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_MAP32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_MAP;
-            dec->length   = buf[parse->idx_cur+1];
+            dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+2];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+3];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
-            dec->length  |= buf[parse->idx_cur+4];
+            dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_NFIXINT:
             MEMSZ_CHK(parse, 1);
             dec->type_dec = MSGPK_INT8;
-            dec->i8 = buf[parse->idx_cur];
+            dec->i8 = msgpk_parse_get_currnet_byte(parse, 0);
             parse->idx_nxt = parse->idx_cur + 1;
             break;
 
@@ -431,10 +450,68 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
     return MSGPK_OK;
 }
 
+/**
+ * @brief Read a byte from parse buf
+ * 
+ * @param parse 
+ * @param offset Offset from current position 
+ * @return uint8_t 
+ */
+uint8_t msgpk_parse_get_currnet_byte(msgpk_parse_t *parse, size_t offset)
+{
+    uint8_t ch = 0xff;
+    MSGPK_CHK(parse, ch);
+
+    #if USE_FILE == 1
+    if (parse->pk->msgpk_fd != NULL) {
+        fseek(parse->pk->msgpk_fd, parse->idx_cur + offset, SEEK_SET);
+        fread(&ch, 1, 1, parse->pk->msgpk_fd);
+        fseek(parse->pk->msgpk_fd, parse->idx_cur, SEEK_SET);
+        return ch;
+    }
+    #endif
+
+    return parse->pk->msgpk_buf[parse->idx_cur + offset];
+}
+
+/**
+ * @brief Get buffer from memory or file
+ * 
+ * @param parse 
+ * @param offset Offset from buffer or file, it's will add cur_idx
+ * @param length Only for file parse
+ * @return uint8_t* In memory, it's pointer to source buffer with offset, In file, it's
+ *      allocate new memory to store, and release in next get or deinit_file
+ */
+uint8_t *msgpk_parse_get_buf(msgpk_parse_t *parse, size_t offset, size_t length)
+{
+    uint8_t *buf = NULL;
+    MSGPK_CHK(parse, NULL);
+
+    #if USE_FILE == 1
+    if (parse->pk->msgpk_fd) {
+        buf = (uint8_t *)malloc(length);
+        if (buf == NULL)return NULL;
+
+        fseek(parse->pk->msgpk_fd, parse->idx_cur + offset, SEEK_SET);
+        fread(buf, 1, parse->pk->msgpk_fd, parse->pk->msgpk_fd);
+        fseek(parse->pk->msgpk_fd, parse->idx_cur, SEEK_SET);
+
+        return buf;
+    }
+    #endif
+
+    // check range
+    if ( (parse->idx_cur + offset + length) > parse->pk->msgpk_sz )return NULL;
+    buf = parse->pk->msgpk_buf + parse->idx_cur + offset;
+    return buf;
+}
+
 uint8_t msgpk_parse_get_currnet_flag(msgpk_parse_t *parse)
 {
     MSGPK_CHK(parse, 0xff);
-    uint8_t flag = parse->pk->msgpk_buf[parse->idx_cur];
+    // uint8_t flag = parse->pk->msgpk_buf[parse->idx_cur];
+    uint8_t flag = msgpk_parse_get_currnet_byte(parse, 0);
 
     if ( (flag & 0x80) == 0x00) {
         return FMTF_PFIXINT;
@@ -482,14 +559,100 @@ int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length)
 {
     MSGPK_CHK(parse, MSGPK_ERR);
     parse->pk      = (msgpk_t *)hooks.calloc(1, sizeof(msgpk_t));
-    MSGPK_CHK(parse->pk, -1);
+    MSGPK_CHK(parse->pk, MSGPK_ERR);
 
+    parse->pk->msgpk_fd  = NULL;
     parse->pk->msgpk_buf = dat;
     parse->pk->msgpk_sz  = length;
     parse->idx_cur       = 0;
     parse->idx_nxt       = 0;
     return MSGPK_OK;
 }
+
+
+#if USE_FILE == 1
+
+/**
+ * @brief Initlialize file parse
+ * 
+ * @param parse 
+ * @param decoded Decoded struct to save result
+ * @param file_path 
+ * @return int 
+ */
+#if PARSE_INSIDE == 1
+int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, const char *file_path)
+#else
+int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *fd)
+#endif
+{
+    MSGPK_CHK(parse, MSGPK_ERR);
+    MSGPK_CHK(decoded, MSGPK_ERR);
+    #if PARSE_INSIDE == 1
+    MSGPK_CHK(file_path, MSGPK_ERR);
+    #else
+    MSGPK_CHK(fd, MSGPK_ERR);
+    #endif
+
+    memset(decoded, 0, sizeof(msgpk_decode_t));
+
+    parse->pk      = (msgpk_t *)hooks.calloc(1, sizeof(msgpk_t));
+    MSGPK_CHK(parse->pk, MSGPK_ERR);
+
+    #if PARSE_INSIDE == 1
+    parse->pk->msgpk_fd = fopen(file_path, "r");
+    if (parse->pk->msgpk_fd == NULL)
+    {
+        free(parse->pk);
+        return MSGPK_ERR;
+    }
+    #else
+    parse->pk->msgpk_fd = fd;
+    #endif
+
+    fseek(parse->pk->msgpk_fd, 0, SEEK_END);
+    parse->pk->msgpk_sz = ftell(parse->pk->msgpk_fd);
+    fseek(parse->pk->msgpk_fd, 0, SEEK_SET);
+    return MSGPK_OK;
+}
+
+/**
+ * @brief File parse deinit
+ * 
+ * @param parse 
+ * @return int 
+ */
+int msgpk_parse_deinit_file(msgpk_parse_t *parse, msgpk_decode_t *decoded)
+{
+    MSGPK_CHK(parse, MSGPK_ERR);
+    MSGPK_CHK(decoded, MSGPK_ERR);
+
+    if (parse->pk) {
+        if (parse->pk->msgpk_fd) {
+            fclose(parse->pk->msgpk_fd);
+        }
+
+        hooks.free(parse->pk);
+    }
+
+    if (decoded->str != NULL) {
+        hooks.free(decoded->str);
+        decoded->str = NULL;
+    }
+
+    if (decoded->bin != NULL) {
+        hooks.free(decoded->bin);
+        decoded->bin = NULL;
+    }
+
+    if (decoded->ext != NULL) {
+        hooks.free(decoded->ext);
+        decoded->ext = NULL;
+    }
+    return MSGPK_OK;
+}
+
+#endif
 
 /**
  * @brief Add unsigned integer
@@ -1258,6 +1421,39 @@ msgpk_t *msgpk_create(size_t init_sz, size_t reserved_sz)
 
     msgpk->buf_stepsz = reserved_sz;
     msgpk->buf_sz     = init_sz;
+    msgpk->msgpk_sz   = 0;
+    return msgpk;
+}
+
+#if ENCODE_INSIDE == 1
+
+/**
+ * @brief Create msgpack file
+ * 
+ * @param file_path 
+ * @param maxLen 
+ * @return msgpk_t* 
+ */
+msgpk_t *msgpk_create_file(const char *file_path, int64_t maxLen)
+#else
+msgpk_t *msgpk_create_file(FILE *fd, int64_t maxLen);
+#endif
+{
+    msgpk_t *msgpk = (msgpk_t *)hooks.malloc(sizeof(msgpk_t));
+    MSGPK_CHK(msgpk, NULL);
+
+    #if ENCODE_INSIDE == 1
+    msgpk->msgpk_fd = fopen(file_path, "w");
+    if (msgpk->msgpk_fd == NULL) {
+        hooks.free(msgpk);
+        return NULL;
+    }
+    #else
+    msgpk->msgpk_fd = fd
+    #endif
+
+    msgpk->buf_stepsz = 0;
+    msgpk->buf_sz     = maxLen;
     msgpk->msgpk_sz   = 0;
     return msgpk;
 }
