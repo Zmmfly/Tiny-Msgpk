@@ -6,8 +6,14 @@
 #ifndef __TINY_MSGPK_H__
 #define __TINY_MSGPK_H__
 
+// Enable inline optimize
 #ifndef RDWR_INLINE
 #define RDWR_INLINE 0
+#endif
+
+// Enable parse number by function
+#ifndef PARSE_RDFN
+#define PARSE_RDFN 1
 #endif
 
 // Enable file encode or decode by 1, 0 for disable

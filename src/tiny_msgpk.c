@@ -32,7 +32,16 @@ int msgpk_parse_next(msgpk_parse_t *parse)
  */
 int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
 {
+    uint8_t buf[8];
 #define MEMSZ_CHK(p, req) if ( ((p)->pk->msgpk_sz - (p)->idx_cur) < req ) return MSGPK_ERR
+
+// only for multiple read
+#define rd_with_bit(bits, dec_name)    \
+    do{ \
+        msgpk_parse_get_multi_bytes(parse, (bits / 8) , buf, 1); \
+        dec->dec_name = msgpk_rd_u##bits##_bigend(buf); \
+    }while(0)
+
     MSGPK_CHK(parse,MSGPK_ERR);
     MSGPK_CHK(dec,MSGPK_ERR);
 
@@ -53,6 +62,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
 
     // uint8_t *buf = parse->pk->msgpk_buf;
     dec->u64 = 0;
+    memset(buf, 0, 8);
 
     // uint8_t flag = buf[parse->idx_cur];
     switch (msgpk_parse_get_currnet_flag(parse))
@@ -120,9 +130,15 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_BIN16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_BIN;
+
+            #if PARSE_RDFN
+            rd_with_bit(16, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
+            #endif
+
             dec->bin      = msgpk_parse_get_buf(parse, 3, dec->length);
             parse->idx_nxt = parse->idx_cur + 3 + dec->length;
             MEMSZ_CHK(parse, 3+dec->length);
@@ -131,6 +147,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_BIN32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec  = MSGPK_BIN;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, length);
+            #else
             dec->length    = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length  <<= 8;
             dec->length   |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -138,6 +158,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->length   |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length  <<= 8;
             dec->length   |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             dec->bin       = msgpk_parse_get_buf(parse, 5, dec->length);
             parse->idx_nxt = parse->idx_cur + 5 + dec->length;
             MEMSZ_CHK(parse, 5+dec->length);
@@ -155,9 +177,15 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_EXT16:
             MEMSZ_CHK(parse, 4);
             dec->type_dec = MSGPK_EXT;
+
+            #if PARSE_RDFN
+            rd_with_bit(16, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
+            #endif
+
             dec->type_ext = msgpk_parse_get_currnet_byte(parse, 3);
             dec->bin      = msgpk_parse_get_buf(parse, 4, dec->length);
             parse->idx_nxt = parse->idx_cur + 4 + dec->length;
@@ -166,6 +194,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_EXT32:
             MEMSZ_CHK(parse, 6);
             dec->type_dec = MSGPK_EXT;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -173,6 +205,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             dec->type_ext = msgpk_parse_get_currnet_byte(parse, 5);
             dec->bin      = msgpk_parse_get_buf(parse, 6, dec->length);
             parse->idx_nxt = parse->idx_cur + 6 + dec->length;
@@ -181,6 +215,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_FLOAT32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_FLOAT32;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, u32);
+            #else
             dec->u32      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u32    <<= 8;
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -188,12 +226,18 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u32    <<= 8;
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_FLOAT64:
             MEMSZ_CHK(parse, 9);
             dec->type_dec = MSGPK_FLOAT64;
+
+            #if PARSE_RDFN
+            rd_with_bit(64, u64);
+            #else
             dec->u64      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u64    <<= 8;
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -209,6 +253,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 7);
             dec->u64    <<= 8;
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 8);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 9;
             break;
 
@@ -222,15 +268,25 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_UINT16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_UINT16;
+
+            #if PARSE_RDFN
+            rd_with_bit(16, u16);
+            #else
             dec->u16      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u16    <<= 8;
             dec->u16     |= msgpk_parse_get_currnet_byte(parse, 2);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_UINT32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_UINT32;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, u32);
+            #else
             dec->u32      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u32    <<= 8;
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -238,12 +294,18 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u32    <<= 8;
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_UINT64:
             MEMSZ_CHK(parse, 9);
             dec->type_dec = MSGPK_UINT64;
+
+            #if PARSE_RDFN
+            rd_with_bit(64, u64);
+            #else
             dec->u64      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u64    <<= 8;
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -259,6 +321,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 7);
             dec->u64    <<= 8;
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 8);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 9;
             break;
 
@@ -272,15 +336,25 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_INT16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_INT16;
+
+            #if PARSE_RDFN
+            rd_with_bit(16, u16);
+            #else
             dec->u16      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u16    <<= 8;
             dec->u16     |= msgpk_parse_get_currnet_byte(parse, 2);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_INT32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_INT32;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, u32);
+            #else
             dec->u32      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u32    <<= 8;
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -288,12 +362,18 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->u32    <<= 8;
             dec->u32     |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_INT64:
             MEMSZ_CHK(parse, 9);
             dec->type_dec = MSGPK_INT64;
+
+            #if PARSE_RDFN
+            rd_with_bit(64, u64);
+            #else
             dec->u64      = msgpk_parse_get_currnet_byte(parse, 1);
             dec->u64    <<= 8;
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -309,6 +389,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 7);
             dec->u64    <<= 8;
             dec->u64     |= msgpk_parse_get_currnet_byte(parse, 8);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 9;
             break;
 
@@ -381,6 +463,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_STR32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_STRING;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -388,6 +474,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             dec->str      = (char *)msgpk_parse_get_buf(parse, 5, dec->length);
             parse->idx_nxt = parse->idx_cur + 5 + dec->length;
             MEMSZ_CHK(parse, 5+dec->length);
@@ -396,15 +484,25 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         case FMTF_ARR16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_ARR;
+
+            #if PARSE_RDFN
+            rd_with_bit(16, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_ARR32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_ARR;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -412,21 +510,33 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
         case FMTF_MAP16:
             MEMSZ_CHK(parse, 3);
             dec->type_dec = MSGPK_MAP;
+
+            #if PARSE_RDFN
+            rd_with_bit(16, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 3;
             break;
 
         case FMTF_MAP32:
             MEMSZ_CHK(parse, 5);
             dec->type_dec = MSGPK_MAP;
+
+            #if PARSE_RDFN
+            rd_with_bit(32, length);
+            #else
             dec->length   = msgpk_parse_get_currnet_byte(parse, 1);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 2);
@@ -434,6 +544,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 3);
             dec->length <<= 8;
             dec->length  |= msgpk_parse_get_currnet_byte(parse, 4);
+            #endif
+
             parse->idx_nxt = parse->idx_cur + 5;
             break;
 
@@ -448,6 +560,8 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
             break;
     }
     return MSGPK_OK;
+#undef rd_with_bit
+#undef MEMSZ_CHK
 }
 
 /**
@@ -456,9 +570,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
  * @param parse 
  * @param sz 
  * @param buf 
+ * @param offset
  * @return int8_t 
  */
-int8_t msgpk_parse_get_multi_bytes(msgpk_parse_t *parse, size_t sz, uint8_t *buf)
+int8_t msgpk_parse_get_multi_bytes(msgpk_parse_t *parse, size_t sz, uint8_t *buf, int8_t offset)
 {
     int8_t ret = MSGPK_ERR;
     size_t rd = 0;
@@ -468,16 +583,17 @@ int8_t msgpk_parse_get_multi_bytes(msgpk_parse_t *parse, size_t sz, uint8_t *buf
     if (parse->pk->msgpk_fd != NULL) {
         // check overflow
         if (parse->idx_cur + sz > parse->pk->msgpk_sz) return MSGPK_ERR_OF;
+        fseek(parse->pk, offset, SEEK_CUR);
         rd = fread(buf, 1, sz, parse->pk->msgpk_fd);
         ret = (rd != sz) ? MSGPK_ERR_RDSZ : MSGPK_OK;
-        fseek(parse->pk, -1 *rd, SEEK_CUR);
+        fseek(parse->pk, -1 *rd + -1 * offset, SEEK_CUR);
         return ret;
     }
     #endif
 
     // check overflow
-    if (parse->idx_cur+sz > parse->pk->msgpk_sz) return MSGPK_ERR_OF;
-    memcpy(buf, parse->pk->msgpk_buf+parse->idx_cur, sz);
+    if (parse->idx_cur+sz+offset > parse->pk->msgpk_sz) return MSGPK_ERR_OF;
+    memcpy(buf, parse->pk->msgpk_buf + parse->idx_cur + offset, sz);
     return MSGPK_OK;
 }
 
@@ -575,6 +691,12 @@ int msgpk_parse_deinit(msgpk_parse_t *parse)
     if (parse->pk) {
         hooks.free(parse->pk);
     }
+
+    #if FILE_ENABLE
+    if (parse->pk->msgpk_fd) {
+        fclose(parse->pk->msgpk_fd);
+    }
+    #endif
     return MSGPK_OK;
 }
 
@@ -1504,7 +1626,7 @@ void msgpk_set_port(msgpk_port_t *port)
     if ( port->free != NULL ) hooks.free    = port->free;
 }
 
-#ifndef RDWR_INLINE
+#if !RDWR_INLINE
 uint16_t msgpk_rd_u16_bigend(uint8_t *dat)
 {
     uint16_t u16 = 0;
