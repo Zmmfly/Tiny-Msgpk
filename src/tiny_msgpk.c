@@ -1496,6 +1496,45 @@ int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
     return MSGPK_OK;
 }
 
+/**
+ * @brief Write to buffer or file handle
+ * 
+ * @param msgpk 
+ * @param data 
+ * @param len 
+ * @return int 
+ */
+int msgpk_write(msgpk_t *msgpk, uint8_t *data, size_t len)
+{
+    #if FILE_ENABLE
+    size_t wr_sz = 0;
+    #endif
+
+    MSGPK_CHK(msgpk,MSGPK_ERR);
+    if (msgpk == NULL || data == NULL || len == 0)return MSGPK_ERR;
+
+    #if FILE_ENABLE
+    if (msgpk->msgpk_fd == NULL) {
+    #endif
+        MSGPK_REQCHK(msgpk, len+3,MSGPK_ERR);
+    #if FILE_ENABLE
+    }
+    #endif
+
+    #if FILE_ENABLE
+    else
+    {
+        if (msgpk->msgpk_sz+len >= msgpk->buf_sz) return MSGPK_ERR_OF;
+        wr_sz = fwrite(data, 1, len, msgpk->msgpk_fd);
+        msgpk->msgpk_sz += wr_sz;
+        return MSGPK_OK;
+    }
+    #endif
+
+    memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz, data, len);
+    msgpk->msgpk_sz += len;
+}
+
 #include <stdio.h>
 
 /**
