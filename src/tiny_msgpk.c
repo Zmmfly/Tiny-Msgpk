@@ -451,6 +451,37 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
 }
 
 /**
+ * @brief Read multiple bytes from buf or file
+ * 
+ * @param parse 
+ * @param sz 
+ * @param buf 
+ * @return int8_t 
+ */
+int8_t msgpk_parse_get_multi_bytes(msgpk_parse_t *parse, size_t sz, uint8_t *buf)
+{
+    int8_t ret = MSGPK_ERR;
+    size_t rd = 0;
+    if (parse == NULL || buf == NULL || sz == 0) return ret;
+
+    #if FILE_ENABLE
+    if (parse->pk->msgpk_fd != NULL) {
+        // check overflow
+        if (parse->idx_cur + sz > parse->pk->msgpk_sz) return MSGPK_ERR_OF;
+        rd = fread(buf, 1, sz, parse->pk->msgpk_fd);
+        ret = (rd != sz) ? MSGPK_ERR_RDSZ : MSGPK_OK;
+        fseek(parse->pk, -1 *rd, SEEK_CUR);
+        return ret;
+    }
+    #endif
+
+    // check overflow
+    if (parse->idx_cur+sz > parse->pk->msgpk_sz) return MSGPK_ERR_OF;
+    memcpy(buf, parse->pk->msgpk_buf+parse->idx_cur, sz);
+    return MSGPK_OK;
+}
+
+/**
  * @brief Read a byte from parse buf
  * 
  * @param parse 
@@ -462,7 +493,7 @@ uint8_t msgpk_parse_get_currnet_byte(msgpk_parse_t *parse, size_t offset)
     uint8_t ch = 0xff;
     MSGPK_CHK(parse, ch);
 
-    #if USE_FILE == 1
+    #if FILE_ENABLE == 1
     if (parse->pk->msgpk_fd != NULL) {
         fseek(parse->pk->msgpk_fd, parse->idx_cur + offset, SEEK_SET);
         fread(&ch, 1, 1, parse->pk->msgpk_fd);
@@ -488,7 +519,7 @@ uint8_t *msgpk_parse_get_buf(msgpk_parse_t *parse, size_t offset, size_t length)
     uint8_t *buf = NULL;
     MSGPK_CHK(parse, NULL);
 
-    #if USE_FILE == 1
+    #if FILE_ENABLE == 1
     if (parse->pk->msgpk_fd) {
         buf = (uint8_t *)malloc(length);
         if (buf == NULL)return NULL;
@@ -570,7 +601,7 @@ int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length)
 }
 
 
-#if USE_FILE == 1
+#if FILE_ENABLE
 
 /**
  * @brief Initlialize file parse
@@ -580,7 +611,7 @@ int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length)
  * @param file_path 
  * @return int 
  */
-#if PARSE_INSIDE == 1
+#if PARSE_INSIDE
 int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, const char *file_path)
 #else
 int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *fd)
@@ -588,7 +619,7 @@ int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *f
 {
     MSGPK_CHK(parse, MSGPK_ERR);
     MSGPK_CHK(decoded, MSGPK_ERR);
-    #if PARSE_INSIDE == 1
+    #if PARSE_INSIDE
     MSGPK_CHK(file_path, MSGPK_ERR);
     #else
     MSGPK_CHK(fd, MSGPK_ERR);
@@ -599,7 +630,7 @@ int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *f
     parse->pk      = (msgpk_t *)hooks.calloc(1, sizeof(msgpk_t));
     MSGPK_CHK(parse->pk, MSGPK_ERR);
 
-    #if PARSE_INSIDE == 1
+    #if PARSE_INSIDE
     parse->pk->msgpk_fd = fopen(file_path, "r");
     if (parse->pk->msgpk_fd == NULL)
     {

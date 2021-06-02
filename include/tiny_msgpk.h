@@ -7,12 +7,12 @@
 #define __TINY_MSGPK_H__
 
 #ifndef RDWR_INLINE
-#define RDWR_INLINE
+#define RDWR_INLINE 0
 #endif
 
 // Enable file encode or decode by 1, 0 for disable
-#ifndef USE_FILE
-#define USE_FILE 1
+#ifndef FILE_ENABLE
+#define FILE_ENABLE 1
 #endif
 
 // Enable file parse inside open or provide FILE *fd
@@ -25,8 +25,10 @@
 #define ENCODE_INSIDE   1
 #endif
 
-#define MSGPK_OK    0
-#define MSGPK_ERR   -1
+#define MSGPK_OK        0
+#define MSGPK_ERR       -1
+#define MSGPK_ERR_OF    -2  // Overflow
+#define MSGPK_ERR_RDSZ  -3  // Read size not match input
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -109,7 +111,7 @@ typedef struct msgpk_port
 typedef struct msgpk
 {
     uint8_t *msgpk_buf;
-    #if USE_FILE == 1
+    #if FILE_ENABLE
     FILE *msgpk_fd;
     #endif
     size_t buf_sz;
@@ -262,7 +264,7 @@ int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *f
 
 void msgpk_set_port(msgpk_port_t *port);
 
-#ifndef RDWR_INLINE
+#if !RDWR_INLINE
 uint16_t msgpk_rd_u16_bigend(uint8_t *dat);
 uint32_t msgpk_rd_u32_bigend(uint8_t *dat);
 uint64_t msgpk_rd_u64_bigend(uint8_t *dat);
