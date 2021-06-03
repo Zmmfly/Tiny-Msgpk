@@ -2,6 +2,7 @@
 *.d
 .xmake
 build
+.vscode
 
 # Object files
 *.o
