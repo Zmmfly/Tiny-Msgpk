@@ -1,16 +1,16 @@
 [
 {
-  "directory": "S:\\OpenSourceLib\\tiny-msgpk",
-  "arguments": ["R:\\Compiler\\mingw64\\bin\\x86_64-w64-mingw32-gcc", "-c", "-m64", "-Iinclude", "-o", "build\\.objs\\Tiny-Msgpk_Test\\mingw\\x86_64\\release\\src\\test.c.obj", "src\\test.c"],
-  "file": "src\\test.c"
-},
-{
-  "directory": "S:\\OpenSourceLib\\tiny-msgpk",
-  "arguments": ["R:\\Compiler\\mingw64\\bin\\x86_64-w64-mingw32-gcc", "-c", "-m64", "-Iinclude", "-o", "build\\.objs\\Tiny-Msgpk_Test\\mingw\\x86_64\\release\\src\\tiny_msgpk.c.obj", "src\\tiny_msgpk.c"],
+  "directory": "K:\\WorkFolder\\Personal\\C.C++\\CrossPlatform\\tiny-msgpk",
+  "arguments": ["R:\\Tools\\Compiler\\mingw64\\bin\\x86_64-w64-mingw32-gcc", "-c", "-m64", "-Iinclude", "-o", "build\\.objs\\Tiny-Msgpk\\mingw\\x86_64\\release\\src\\tiny_msgpk.c.obj", "src\\tiny_msgpk.c"],
   "file": "src\\tiny_msgpk.c"
 },
 {
-  "directory": "S:\\OpenSourceLib\\tiny-msgpk",
-  "arguments": ["R:\\Compiler\\mingw64\\bin\\x86_64-w64-mingw32-gcc", "-c", "-m64", "-Iinclude", "-o", "build\\.objs\\Tiny-Msgpk\\mingw\\x86_64\\release\\src\\tiny_msgpk.c.obj", "src\\tiny_msgpk.c"],
+  "directory": "K:\\WorkFolder\\Personal\\C.C++\\CrossPlatform\\tiny-msgpk",
+  "arguments": ["R:\\Tools\\Compiler\\mingw64\\bin\\x86_64-w64-mingw32-gcc", "-c", "-m64", "-Iinclude", "-o", "build\\.objs\\Tiny-Msgpk_Test\\mingw\\x86_64\\release\\src\\tiny_msgpk.c.obj", "src\\tiny_msgpk.c"],
   "file": "src\\tiny_msgpk.c"
+},
+{
+  "directory": "K:\\WorkFolder\\Personal\\C.C++\\CrossPlatform\\tiny-msgpk",
+  "arguments": ["R:\\Tools\\Compiler\\mingw64\\bin\\x86_64-w64-mingw32-g++", "-c", "-m64", "-Iinclude", "-o", "build\\.objs\\Tiny-Msgpk_Test\\mingw\\x86_64\\release\\src\\test.cpp.obj", "src\\test.cpp"],
+  "file": "src\\test.cpp"
 }]

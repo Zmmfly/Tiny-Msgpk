@@ -583,10 +583,10 @@ int8_t msgpk_parse_get_multi_bytes(msgpk_parse_t *parse, size_t sz, uint8_t *buf
     if (parse->pk->msgpk_fd != NULL) {
         // check overflow
         if (parse->idx_cur + sz > parse->pk->msgpk_sz) return MSGPK_ERR_OF;
-        fseek(parse->pk, offset, SEEK_CUR);
+        fseek(parse->pk->msgpk_fd, offset, SEEK_CUR);
         rd = fread(buf, 1, sz, parse->pk->msgpk_fd);
         ret = (rd != sz) ? MSGPK_ERR_RDSZ : MSGPK_OK;
-        fseek(parse->pk, -1 *rd + -1 * offset, SEEK_CUR);
+        fseek(parse->pk->msgpk_fd, -1 *rd + -1 * offset, SEEK_CUR);
         return ret;
     }
     #endif
@@ -1002,9 +1002,6 @@ int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num)
     if (num < -31)return MSGPK_ERR;
 
     #if FILE_ENABLE
-    if (msgpk->msgpk_fd == NULL) {
-        MSGPK_REQCHK(msgpk, 1, MSGPK_ERR);    
-    }
 
     dat = num & 0x1f;
     dat |= 0xe0;
@@ -1024,20 +1021,16 @@ int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num)
 
 int msgpk_add_map32(msgpk_t *msgpk, uint32_t num)
 {
+    MSGPK_CHK(msgpk,MSGPK_ERR);
     #if FILE_ENABLE
-    uint8_t ch = 0;
-    uint8_t buf[4] = 0;
-    if (msgpk->msgpk_fd == NULL) {
-        MSGPK_REQCHK(msgpk, 1, MSGPK_ERR);    
-    }
+    uint8_t ch = FMTF_MAP32;
+    uint8_t buf[4];
 
-    ch = FMTF_MAP32;
     msgpk_wr_u32_bigend(buf, num);
     msgpk_write(msgpk, &ch, 1);
     return msgpk_write(msgpk, buf, 4);
 
     #else
-    MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_MAP32;
@@ -1050,9 +1043,16 @@ int msgpk_add_map32(msgpk_t *msgpk, uint32_t num)
 
 int msgpk_add_map16(msgpk_t *msgpk, uint16_t num)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_MAP16;
+    uint8_t buf[2] = {0,0};
+
+    msgpk_wr_u16_bigend(buf, num);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 2);
+
+    #else
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_MAP16;
@@ -1063,11 +1063,18 @@ int msgpk_add_map16(msgpk_t *msgpk, uint16_t num)
     #endif
 }
 
-int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num)
+int msgpk_add_arr32(msgpk_t *msgpk, uint32_t num)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_ARR32;
+    uint8_t buf[4] = {0,0,0,0};
+
+    msgpk_wr_u32_bigend(buf, num);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 4);
+
+    #else
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_ARR32;
@@ -1080,9 +1087,15 @@ int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num)
 
 int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_ARR16;
+    uint8_t buf[2] = {0,0};
+
+    msgpk_wr_u16_bigend(buf, num);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 2);
+    #else
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_ARR16;
@@ -1111,9 +1124,16 @@ int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len)
 
 int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_STR16;
+    uint8_t buf[2] = {0,0};
+    msgpk_wr_u16_bigend(buf, len);
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, buf, 2);
+    return msgpk_write(msgpk, (uint8_t *)str, len);
+    #else
     MSGPK_REQCHK(msgpk, len+3,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_STR16;
@@ -1127,9 +1147,14 @@ int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len)
 
 int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_STR8;
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &len, 1);
+    return msgpk_write(msgpk, str, len);
+    #else
     MSGPK_REQCHK(msgpk, len+2,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_STR8;
@@ -1143,9 +1168,15 @@ int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len)
 
 int msgpk_add_int64(msgpk_t *msgpk, int64_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_INT64;
+    uint8_t buf[8];
+    msgpk_wr_u64_bigend(buf, dat);
+
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 8);
+    #else
     MSGPK_REQCHK(msgpk, 9,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_INT64;
@@ -1158,9 +1189,16 @@ int msgpk_add_int64(msgpk_t *msgpk, int64_t dat)
 
 int msgpk_add_int32(msgpk_t *msgpk, int32_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_INT32;
+    uint8_t buf[4];
+
+    msgpk_wr_u32_bigend(buf, dat);
+
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 4);
+    #else
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_INT32;
@@ -1173,9 +1211,15 @@ int msgpk_add_int32(msgpk_t *msgpk, int32_t dat)
 
 int msgpk_add_int16(msgpk_t *msgpk, int16_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_INT16;
+    uint8_t buf[2];
+
+    msgpk_wr_u16_bigend(buf, dat);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 2);
+    #else
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_INT16;
@@ -1188,9 +1232,13 @@ int msgpk_add_int16(msgpk_t *msgpk, int16_t dat)
 
 int msgpk_add_int8(msgpk_t *msgpk, int8_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_INT8;
+
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, &dat, 1);
+    #else
     MSGPK_REQCHK(msgpk, 2,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_INT8;
@@ -1202,9 +1250,16 @@ int msgpk_add_int8(msgpk_t *msgpk, int8_t dat)
 
 int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_UINT64;
+    uint8_t buf[8];
+
+    msgpk_wr_u64_bigend(buf, dat);
+
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 8);
+    #else
     MSGPK_REQCHK(msgpk, 9,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_UINT64;
@@ -1217,9 +1272,15 @@ int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat)
 
 int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_UINT32;
+    uint8_t buf[4];
+
+    msgpk_wr_u32_bigend(buf, dat);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 4);
+    #else
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_UINT32;
@@ -1232,9 +1293,15 @@ int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat)
 
 int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_UINT16;
+    uint8_t buf[2];
+
+    msgpk_wr_u16_bigend(buf, dat);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 2);
+    #else
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_UINT16;
@@ -1247,9 +1314,13 @@ int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat)
 
 int msgpk_add_uint8(msgpk_t *msgpk, uint8_t dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_UINT8;
+
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, &dat, 1);
+    #else
     MSGPK_REQCHK(msgpk, 2,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_UINT8;
@@ -1267,10 +1338,19 @@ int msgpk_add_float64(msgpk_t *msgpk, double f)
     }dat = {
         .f_f = f
     };
-    #if FILE_ENABLE
-    #else
 
     MSGPK_CHK(msgpk,MSGPK_ERR);
+
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_FLOAT64;
+    uint8_t buf[8];
+
+    msgpk_wr_u64_bigend(buf, dat.f_u64);
+    msgpk_write(msgpk, &ch ,1);
+    return msgpk_write(msgpk, buf, 8);
+
+    #else
+
     MSGPK_REQCHK(msgpk, 9,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_FLOAT64;
@@ -1289,9 +1369,17 @@ int msgpk_add_float32(msgpk_t *msgpk, float f)
     }dat = {
         .f_f = f
     };
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_FLOAT32;
+    uint8_t buf[4];
+
+    msgpk_wr_u32_bigend(buf, dat.f_u32);
+
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 4);
+
+    #else
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_FLOAT32;
@@ -1304,10 +1392,20 @@ int msgpk_add_float32(msgpk_t *msgpk, float f)
 
 int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
+
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_EXT32;
+    uint8_t buf[4];
+
+    msgpk_wr_u32_bigend(buf, len);
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, buf, 4);
+    msgpk_write(msgpk, &type, 1);
+    return msgpk_write(msgpk, dat, len);
+    #else
     MSGPK_REQCHK(msgpk, len+6,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_EXT32;
@@ -1322,10 +1420,18 @@ int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len)
 
 int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_EXT16;
+    uint8_t buf[2];
+
+    msgpk_wr_u16_bigend(buf, len);
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, buf, 2);
+    msgpk_write(msgpk, dat, len);
+    #else
     MSGPK_REQCHK(msgpk, len+4,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_EXT16;
@@ -1340,10 +1446,16 @@ int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len)
 
 int msgpk_add_ext8(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint8_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_EXT8;
+    
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &len, 1);
+    msgpk_write(msgpk, &type, 1);
+    return msgpk_write(msgpk, dat, len);
+    #else
     MSGPK_REQCHK(msgpk, len+3,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_EXT8;
@@ -1356,12 +1468,27 @@ int msgpk_add_ext8(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint8_t len)
     #endif
 }
 
+/**
+ * @brief Add fixed ext 16
+ * 
+ * @param msgpk 
+ * @param type 
+ * @param dat Make sure that had 16 bytes
+ * @return int 
+ */
 int msgpk_add_fixext16(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
+
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_FIXEXT16;
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &type, 1);
+    return msgpk_write(msgpk, dat, 16);
+
+    #else
     MSGPK_REQCHK(msgpk, 18,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_FIXEXT16;
@@ -1373,12 +1500,28 @@ int msgpk_add_fixext16(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     #endif
 }
 
+/**
+ * @brief Add fixed ext 8
+ * 
+ * @param msgpk 
+ * @param type 
+ * @param dat Make sure that had 8 bytes
+ * @return int 
+ */
 int msgpk_add_fixext8(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
+
+    #if FILE_ENABLE
+
+    uint8_t ch = FMTF_FIXEXT8;
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &type, 1);
+    return msgpk_write(msgpk, dat, 8);
+
+    #else
     MSGPK_REQCHK(msgpk, 10,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_FIXEXT8;
@@ -1390,12 +1533,28 @@ int msgpk_add_fixext8(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     #endif
 }
 
+/**
+ * @brief Add fixed ext 4
+ * 
+ * @param msgpk 
+ * @param type 
+ * @param dat Make sure that had 4 bytes
+ * @return int 
+ */
 int msgpk_add_fixext4(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
+    #if FILE_ENABLE
+
+    uint8_t ch = FMTF_FIXEXT4;
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &type, 1);
+    return msgpk_write(msgpk, dat, 4);
+
+    #else
+
     MSGPK_REQCHK(msgpk, 6,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_FIXEXT4;
@@ -1407,12 +1566,28 @@ int msgpk_add_fixext4(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     #endif
 }
 
+/**
+ * @brief Add fixed length ext
+ * 
+ * @param msgpk 
+ * @param type 
+ * @param dat Make sure that had 2 bytes
+ * @return int 
+ */
 int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
+    #if FILE_ENABLE
+
+    uint8_t ch = FMTF_FIXEXT2;
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &type, 1);
+    return msgpk_write(msgpk, dat, 2);
+
+    #else
+    
     MSGPK_REQCHK(msgpk, 4,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz]   = FMTF_FIXEXT2;
@@ -1425,9 +1600,26 @@ int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     #endif
 }
 
+/**
+ * @brief Add fixed ext 1
+ * 
+ * @param msgpk 
+ * @param type 
+ * @param dat Make sure that had 1 byte
+ * @return int 
+ */
 int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
+    MSGPK_CHK(msgpk,MSGPK_ERR);
+    if (type < 0)return MSGPK_ERR;
     #if FILE_ENABLE
+
+    uint8_t ch = FMTF_FIXEXT1;
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &type, 1);
+    return msgpk_write(msgpk, dat, 1);
+
     #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
@@ -1442,12 +1634,29 @@ int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     #endif
 }
 
+/**
+ * @brief Add bin with 32bit length
+ * 
+ * @param msgpk 
+ * @param dat 
+ * @param len 
+ * @return int 
+ */
 int msgpk_add_bin32(msgpk_t *msgpk, uint8_t *dat, uint32_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
-    if ( (uint8_t)len > 32) return MSGPK_ERR;
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_BIN32;
+    uint8_t buf[4];
+
+    msgpk_wr_u32_bigend(buf, len);
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, buf, 4);
+    return msgpk_write(msgpk, dat, len);
+
+    #else
+    // if ( (uint8_t)len > 32) return MSGPK_ERR;
 
     MSGPK_REQCHK(msgpk, len+4,MSGPK_ERR);
 
@@ -1468,10 +1677,19 @@ int msgpk_add_bin32(msgpk_t *msgpk, uint8_t *dat, uint32_t len)
 
 int msgpk_add_bin16(msgpk_t *msgpk, uint8_t *dat, uint16_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
-    if ( (uint8_t)len > 32) return MSGPK_ERR;
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_BIN16;
+    uint8_t buf[2];
+
+    msgpk_wr_u16_bigend(buf, len);
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, buf, 2);
+    return msgpk_write(msgpk, dat, len);
+
+    #else
+    // if ( (uint8_t)len > 32) return MSGPK_ERR;
 
     MSGPK_REQCHK(msgpk, len+3,MSGPK_ERR);
 
@@ -1490,10 +1708,17 @@ int msgpk_add_bin16(msgpk_t *msgpk, uint8_t *dat, uint16_t len)
 
 int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len)
 {
+    MSGPK_CHK(msgpk,MSGPK_ERR);
     #if FILE_ENABLE
+    uint8_t ch = FMTF_BIN8;
+
+    msgpk_write(msgpk, &ch, 1);
+    msgpk_write(msgpk, &len, 4);
+    return msgpk_write(msgpk, dat, len);
+
     #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
-    if ( (uint8_t)len > 32) return MSGPK_ERR;
+    // if ( (uint8_t)len > 32) return MSGPK_ERR;
 
     MSGPK_REQCHK(msgpk, len+2,MSGPK_ERR);
 
@@ -1510,9 +1735,12 @@ int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len)
 
 int msgpk_add_true(msgpk_t *msgpk)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_TRUE;
+
+    return msgpk_write(msgpk, &ch, 1);
+    #else
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_TRUE;
@@ -1523,9 +1751,12 @@ int msgpk_add_true(msgpk_t *msgpk)
 
 int msgpk_add_false(msgpk_t *msgpk)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_FALSE;
+
+    return msgpk_write(msgpk, &ch, 1);
+    #else
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_FALSE;
@@ -1536,9 +1767,12 @@ int msgpk_add_false(msgpk_t *msgpk)
 
 int msgpk_add_nil(msgpk_t *msgpk)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_NIL;
+
+    return msgpk_write(msgpk, &ch, 1);
+    #else
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_NIL;
@@ -1549,16 +1783,20 @@ int msgpk_add_nil(msgpk_t *msgpk)
 
 int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len)
 {
-    #if FILE_ENABLE
-    #else
     uint8_t hdr = 0;
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( len > 32) return MSGPK_ERR;
 
-    MSGPK_REQCHK(msgpk, len+1,MSGPK_ERR);
-
-    hdr = len & 0x1f;
+    hdr = len & ~FMTM_FIXSTR;
     hdr |= 0xa0;
+
+    #if FILE_ENABLE
+    msgpk_write(msgpk, &hdr, 1);
+    return msgpk_write(msgpk, str, len);
+
+    #else
+
+    MSGPK_REQCHK(msgpk, len+1,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = hdr;
     msgpk->msgpk_sz++;
@@ -1571,13 +1809,15 @@ int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len)
 
 int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)num > 16) return MSGPK_ERR;
 
     num &= 0x0F;
     num |= 0x90;
+
+    #if FILE_ENABLE
+    return msgpk_write(msgpk, &num, 1);
+    #else
 
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
@@ -1590,13 +1830,15 @@ int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num)
 
 int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)num > 15) return MSGPK_ERR;
 
     num &= 0x0F;
     num |= 0x80;
+    #if FILE_ENABLE
+
+    return msgpk_write(msgpk, &num, 1);
+    #else
 
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
@@ -1609,12 +1851,15 @@ int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num)
 
 int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)num > 127) return MSGPK_ERR;
 
     num &= 0x7f;
+    #if FILE_ENABLE
+
+    return msgpk_write(msgpk, &num, 1);
+    #else
+
 
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
     msgpk->msgpk_buf[msgpk->msgpk_sz] = num;
@@ -1631,7 +1876,7 @@ int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
  * @param len 
  * @return int 
  */
-int msgpk_write(msgpk_t *msgpk, uint8_t *data, size_t len)
+int msgpk_write(msgpk_t *msgpk, void *data, size_t len)
 {
     #if FILE_ENABLE
     size_t wr_sz = 0;
@@ -1660,6 +1905,7 @@ int msgpk_write(msgpk_t *msgpk, uint8_t *data, size_t len)
 
     memcpy(msgpk->msgpk_buf+msgpk->msgpk_sz, data, len);
     msgpk->msgpk_sz += len;
+    return MSGPK_OK;
 }
 
 #include <stdio.h>
@@ -1711,6 +1957,7 @@ int msgpk_delete(msgpk_t *msgpk, uint8_t del_buf, uint8_t destory)
 {
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( del_buf && msgpk->msgpk_buf != NULL)hooks.free(msgpk->msgpk_buf);
+
     if ( destory )hooks.free(msgpk);
     return MSGPK_OK;
 }
@@ -1738,13 +1985,17 @@ msgpk_t *msgpk_create(size_t init_sz, size_t reserved_sz)
         return NULL;
     }
 
+    #if FILE_ENABLE
+    msgpk->msgpk_fd = NULL;
+    #endif
+
     msgpk->buf_stepsz = reserved_sz;
     msgpk->buf_sz     = init_sz;
     msgpk->msgpk_sz   = 0;
     return msgpk;
 }
 
-#if ENCODE_INSIDE == 1
+#if ENCODE_INSIDE
 
 /**
  * @brief Create msgpack file
@@ -1761,7 +2012,7 @@ msgpk_t *msgpk_create_file(FILE *fd, int64_t maxLen);
     msgpk_t *msgpk = (msgpk_t *)hooks.malloc(sizeof(msgpk_t));
     MSGPK_CHK(msgpk, NULL);
 
-    #if ENCODE_INSIDE == 1
+    #if ENCODE_INSIDE
     msgpk->msgpk_fd = fopen(file_path, "w");
     if (msgpk->msgpk_fd == NULL) {
         hooks.free(msgpk);
@@ -1771,6 +2022,7 @@ msgpk_t *msgpk_create_file(FILE *fd, int64_t maxLen);
     msgpk->msgpk_fd = fd
     #endif
 
+    msgpk->msgpk_buf  = NULL;
     msgpk->buf_stepsz = 0;
     msgpk->buf_sz     = maxLen;
     msgpk->msgpk_sz   = 0;
