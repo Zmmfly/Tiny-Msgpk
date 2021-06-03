@@ -50,15 +50,15 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
         dec->str = NULL;
     }
 
-    if (dec->bin != NULL && parse->pk->msgpk_fd) {
-        hooks.free(dec->bin);
-        dec->bin = NULL;
-    }
+    // if (dec->bin != NULL && parse->pk->msgpk_fd) {
+    //     hooks.free(dec->bin);
+    //     dec->bin = NULL;
+    // }
 
-    if (dec->ext != NULL && parse->pk->msgpk_fd) {
-        hooks.free(dec->ext);
-        dec->ext = NULL;
-    }
+    // if (dec->ext != NULL && parse->pk->msgpk_fd) {
+    //     hooks.free(dec->ext);
+    //     dec->ext = NULL;
+    // }
 
     // uint8_t *buf = parse->pk->msgpk_buf;
     dec->u64 = 0;
@@ -641,7 +641,7 @@ uint8_t *msgpk_parse_get_buf(msgpk_parse_t *parse, size_t offset, size_t length)
         if (buf == NULL)return NULL;
 
         fseek(parse->pk->msgpk_fd, parse->idx_cur + offset, SEEK_SET);
-        fread(buf, 1, parse->pk->msgpk_fd, parse->pk->msgpk_fd);
+        fread(buf, 1, length, parse->pk->msgpk_fd);
         fseek(parse->pk->msgpk_fd, parse->idx_cur, SEEK_SET);
 
         return buf;
@@ -734,26 +734,26 @@ int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length)
  * @return int 
  */
 #if PARSE_INSIDE
-int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, const char *file_path)
+int msgpk_parse_init_file(msgpk_parse_t *parse, const char *file_path)
 #else
-int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *fd)
+int msgpk_parse_init_file(msgpk_parse_t *parse, FILE *fd)
 #endif
 {
     MSGPK_CHK(parse, MSGPK_ERR);
-    MSGPK_CHK(decoded, MSGPK_ERR);
+    // MSGPK_CHK(decoded, MSGPK_ERR);
     #if PARSE_INSIDE
     MSGPK_CHK(file_path, MSGPK_ERR);
     #else
     MSGPK_CHK(fd, MSGPK_ERR);
     #endif
 
-    memset(decoded, 0, sizeof(msgpk_decode_t));
+    // memset(decoded, 0, sizeof(msgpk_decode_t));
 
     parse->pk      = (msgpk_t *)hooks.calloc(1, sizeof(msgpk_t));
     MSGPK_CHK(parse->pk, MSGPK_ERR);
 
     #if PARSE_INSIDE
-    parse->pk->msgpk_fd = fopen(file_path, "r");
+    parse->pk->msgpk_fd = fopen(file_path, "rb");
     if (parse->pk->msgpk_fd == NULL)
     {
         free(parse->pk);
@@ -762,6 +762,9 @@ int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *f
     #else
     parse->pk->msgpk_fd = fd;
     #endif
+
+    parse->idx_cur = 0;
+    parse->idx_nxt = 0;
 
     fseek(parse->pk->msgpk_fd, 0, SEEK_END);
     parse->pk->msgpk_sz = ftell(parse->pk->msgpk_fd);
@@ -1898,7 +1901,10 @@ int msgpk_write(msgpk_t *msgpk, void *data, size_t len)
     {
         if (msgpk->msgpk_sz+len >= msgpk->buf_sz) return MSGPK_ERR_OF;
         wr_sz = fwrite(data, 1, len, msgpk->msgpk_fd);
-        msgpk->msgpk_sz += wr_sz;
+        if (wr_sz != len) {
+            printf("Write err, not match input, write size(%u), input size(%u)\n", wr_sz, len);
+        }
+        msgpk->msgpk_sz += len;
         return MSGPK_OK;
     }
     #endif
@@ -1944,8 +1950,25 @@ int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz)
     return MSGPK_OK;
 }
 
+#if FILE_ENABLE
 /**
- * @brief Delete MessagePack
+ * @brief Finish file create
+ * 
+ * @param msgpk 
+ * @param destory 
+ * @return int 
+ */
+int msgpk_file_done(msgpk_t *msgpk, uint8_t destory)
+{
+    if (msgpk == NULL) return MSGPK_ERR;
+    if (msgpk->msgpk_fd != NULL) fclose(msgpk->msgpk_fd);
+    if (destory) hooks.free(msgpk);
+    return MSGPK_OK;
+}
+#endif
+
+/**
+ * @brief Delete MessagePack for memory buffer
  * @note yes = 1, not = 0
  * 
  * @param msgpk MessagePack pointer
@@ -2004,16 +2027,16 @@ msgpk_t *msgpk_create(size_t init_sz, size_t reserved_sz)
  * @param maxLen 
  * @return msgpk_t* 
  */
-msgpk_t *msgpk_create_file(const char *file_path, int64_t maxLen)
+msgpk_t *msgpk_file_create(const char *file_path, uint64_t maxLen)
 #else
-msgpk_t *msgpk_create_file(FILE *fd, int64_t maxLen);
+msgpk_t *msgpk_file_create(FILE *fd, int64_t maxLen);
 #endif
 {
     msgpk_t *msgpk = (msgpk_t *)hooks.malloc(sizeof(msgpk_t));
     MSGPK_CHK(msgpk, NULL);
 
     #if ENCODE_INSIDE
-    msgpk->msgpk_fd = fopen(file_path, "w");
+    msgpk->msgpk_fd = fopen(file_path, "wb");
     if (msgpk->msgpk_fd == NULL) {
         hooks.free(msgpk);
         return NULL;

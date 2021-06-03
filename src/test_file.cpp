@@ -2,11 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <list>
+#include <iostream>
+#include <fstream>
 #include "tiny_msgpk.h"
 
 #define TYPE_MALLOC     1
 #define TYPE_CALLOC     2
 #define TYPE_REALLOC    3
+#define MSGPK_PATH  "msgpk.bin"
+
 
 typedef struct allocate_info
 {
@@ -105,7 +109,115 @@ void parse(uint8_t *dat, size_t length)
     printf("Parse  start\n");
     do
     {
-        if ( msgpk_parse_get(&parse, &decode) == -1) break;
+        if ( msgpk_parse_get(&parse, &decode) == -1) {
+            printf("parse get error\n");
+            break;
+        }
+        switch (decode.type_dec)
+        {
+            case MSGPK_INT8:
+                printf("INT8:%d\n", decode.i8);
+                break;
+
+            case MSGPK_INT16:
+                printf("INT16:%d\n", decode.i16);
+                break;
+
+            case MSGPK_INT32:
+                printf("INT32:%d\n", decode.i32);
+                break;
+
+            case MSGPK_INT64:
+                printf("INT64:%lld\n", decode.i64);
+                break;
+
+            case MSGPK_UINT8:
+                printf("UINT8:%u\n", decode.u8);
+                break;
+
+            case MSGPK_UINT16:
+                printf("UINT16:%u\n", decode.u16);
+                break;
+
+            case MSGPK_UINT32:
+                printf("UINT32:%u\n", decode.u32);
+                break;
+
+            case MSGPK_UINT64:
+                printf("UINT64:%llu\n", decode.u64);
+                break;
+
+            case MSGPK_FLOAT32:
+                printf("FLOAT32:%f\n", decode.f32);
+                break;
+
+            case MSGPK_FLOAT64:
+                printf("FLOAT64:%f\n", decode.f64);
+                break;
+
+            case MSGPK_STRING:
+                printf("STRING:%.*s\n", decode.length, decode.str);
+                break;
+
+            case MSGPK_NIL:
+                printf("NIL\n");
+                break;
+
+            case MSGPK_FALSE:
+                printf("FALSE\n");
+                break;
+
+            case MSGPK_TRUE:
+                printf("TRUE\n");
+                break;
+
+            case MSGPK_MAP:
+                printf("MAP:%u\n", decode.length);
+                break;
+
+            case MSGPK_ARR:
+                printf("ARR:%u\n", decode.length);
+                break;
+
+            case MSGPK_BIN:
+                printf("BIN:%u\n", decode.length);
+                prHex(decode.bin, decode.length);
+                break;
+
+            case MSGPK_EXT:
+                printf("EXT: type(%u), length(%u)\n", decode.type_ext, decode.length);
+                prHex(decode.bin, decode.length);
+                break;
+
+            case MSGPK_TIMESTAMP:
+                printf("EXT: Timestamp\n");
+                break;
+        
+            default:
+                break;
+        }
+    }
+    while( !msgpk_parse_next(&parse) );
+    msgpk_parse_deinit(&parse);
+    printf("end\n");
+    return;
+}
+
+void parse_file(const char *path)
+{
+    msgpk_parse_t parse;
+    msgpk_decode_t decode;
+
+    printf("Parse  init\n");
+    msgpk_parse_init_file(&parse, path);
+
+    printf("Parse  start\n");
+    do
+    {
+        if ( msgpk_parse_get(&parse, &decode) == -1) {
+            printf("parse get error\n");
+            break;
+        }
         switch (decode.type_dec)
         {
             case MSGPK_INT8:
@@ -198,11 +310,14 @@ void parse(uint8_t *dat, size_t length)
 
 int main(void)
 {
+    uint8_t *buf = NULL;
     msgpk_t *msgpk = NULL;
+    std::ifstream file;
 
     msgpk_set_port(&port);
 
-    msgpk = msgpk_create(8, 4);
+    // msgpk = msgpk_create(8, 4);
+    msgpk = msgpk_file_create(MSGPK_PATH, 0xffffffff);
     msgpk_add_map(msgpk, 5);
 
     msgpk_add_str(msgpk, "fixstr", 6);
@@ -259,15 +374,16 @@ int main(void)
         msgpk_add_ext(msgpk, 3, fixext4, 4);
         
         msgpk_add_str(msgpk, "fixext8", 7);
-        uint8_t fixext8[] = {0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x11,0x22};
+        static uint8_t fixext8[] = {0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x11,0x22};
         msgpk_add_ext(msgpk, 4, fixext8, 8);
         
         msgpk_add_str(msgpk, "fixext16", 8);
-        uint8_t fixext16[] = {
+        static uint8_t fixext16[] = {
             0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
             0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f,0x10
         };
         msgpk_add_ext(msgpk, 5, fixext16, 16);
+        // msgpk_add_fixext16(msgpk, 5, fixext16);
         
         msgpk_add_str(msgpk, "ext8", 4);
         uint8_t ext8[] = {0xaa, 0xbb, 0xcc, 0xdd};
@@ -294,10 +410,31 @@ int main(void)
         msgpk_add_int(msgpk, -6);
 
     exit:
-    prHex(msgpk->msgpk_buf, msgpk->msgpk_sz);
-    printf("Msgpk: bufsz(%u), msgsz(%u)\n", msgpk->buf_sz, msgpk->msgpk_sz);
-    parse(msgpk->msgpk_buf, msgpk->msgpk_sz);
-    msgpk_delete(msgpk, 1, 1);
+    msgpk_file_done(msgpk, 1);    
+    buf = (uint8_t *)malloc(msgpk->msgpk_sz);
+    if (buf == NULL) {
+        printf("Nomem\n");
+        return 0;
+    }
+    file.open(MSGPK_PATH, std::ios::binary| std::ios::in);
+    if (!file.is_open()) {
+        printf("Read error\n");
+        return 0;
+    }
+    file.seekg(0, std::ios::end);
+    size_t sz = file.tellg();
+    printf("File sz: %u\n", sz);
+    file.seekg(0);
+    file.read((char *)buf, sz);
+    prHex(buf, sz);
+    file.close();
+    // file.clear();
+    free(msgpk);
+
+    // parse(buf, sz);
+    free(buf);
+
+    parse_file(MSGPK_PATH);
 
     // mem leak check
     if (list.size() > 0) {
@@ -306,8 +443,8 @@ int main(void)
         {
             printf("Leak addr: %p, size: %u, type: %u\n", it->ptr, it->sz, it->type);
         }
-        return 0;
+    } else {
+        printf("No memory leak\n");
     }
-    printf("No memory leak\n");
     return 0;
 }
