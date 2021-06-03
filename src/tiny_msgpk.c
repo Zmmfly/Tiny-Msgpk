@@ -1000,6 +1000,17 @@ int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num)
     uint8_t dat = 0;
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (num < -31)return MSGPK_ERR;
+
+    #if FILE_ENABLE
+    if (msgpk->msgpk_fd == NULL) {
+        MSGPK_REQCHK(msgpk, 1, MSGPK_ERR);    
+    }
+
+    dat = num & 0x1f;
+    dat |= 0xe0;
+
+    return msgpk_write(msgpk, &dat, 1);
+    #else
     MSGPK_REQCHK(msgpk, 1, MSGPK_ERR);
 
     dat = num & 0x1f;
@@ -1008,10 +1019,24 @@ int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num)
     msgpk->msgpk_buf[msgpk->msgpk_sz] = dat;
     msgpk->msgpk_sz += 1;
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_map32(msgpk_t *msgpk, uint32_t num)
 {
+    #if FILE_ENABLE
+    uint8_t ch = 0;
+    uint8_t buf[4] = 0;
+    if (msgpk->msgpk_fd == NULL) {
+        MSGPK_REQCHK(msgpk, 1, MSGPK_ERR);    
+    }
+
+    ch = FMTF_MAP32;
+    msgpk_wr_u32_bigend(buf, num);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 4);
+
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
@@ -1020,10 +1045,13 @@ int msgpk_add_map32(msgpk_t *msgpk, uint32_t num)
     msgpk->msgpk_sz += 5;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_map16(msgpk_t *msgpk, uint16_t num)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
@@ -1032,10 +1060,13 @@ int msgpk_add_map16(msgpk_t *msgpk, uint16_t num)
     msgpk->msgpk_sz += 3;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
@@ -1044,10 +1075,13 @@ int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num)
     msgpk->msgpk_sz += 5;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
@@ -1056,10 +1090,13 @@ int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num)
     msgpk->msgpk_sz += 3;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, len+5,MSGPK_ERR);
 
@@ -1069,10 +1106,13 @@ int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len)
     msgpk->msgpk_sz += (len+5);
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, len+3,MSGPK_ERR);
 
@@ -1082,10 +1122,13 @@ int msgpk_add_str16(msgpk_t *msgpk, char *str, uint16_t len)
     msgpk->msgpk_sz += (len+3);
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, len+2,MSGPK_ERR);
 
@@ -1095,10 +1138,13 @@ int msgpk_add_str8(msgpk_t *msgpk, char *str, uint8_t len)
     msgpk->msgpk_sz += (len+2);
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_int64(msgpk_t *msgpk, int64_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 9,MSGPK_ERR);
 
@@ -1107,10 +1153,13 @@ int msgpk_add_int64(msgpk_t *msgpk, int64_t dat)
     msgpk->msgpk_sz+=9;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_int32(msgpk_t *msgpk, int32_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
@@ -1119,10 +1168,13 @@ int msgpk_add_int32(msgpk_t *msgpk, int32_t dat)
     msgpk->msgpk_sz+=5;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_int16(msgpk_t *msgpk, int16_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
@@ -1131,10 +1183,13 @@ int msgpk_add_int16(msgpk_t *msgpk, int16_t dat)
     msgpk->msgpk_sz+=3;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_int8(msgpk_t *msgpk, int8_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 2,MSGPK_ERR);
 
@@ -1142,10 +1197,13 @@ int msgpk_add_int8(msgpk_t *msgpk, int8_t dat)
     msgpk->msgpk_buf[msgpk->msgpk_sz+1] = dat;
     msgpk->msgpk_sz += 2;
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 9,MSGPK_ERR);
 
@@ -1154,10 +1212,13 @@ int msgpk_add_uint64(msgpk_t *msgpk, uint64_t dat)
     msgpk->msgpk_sz+=9;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
@@ -1166,10 +1227,13 @@ int msgpk_add_uint32(msgpk_t *msgpk, uint32_t dat)
     msgpk->msgpk_sz+=5;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
 
@@ -1178,10 +1242,13 @@ int msgpk_add_uint16(msgpk_t *msgpk, uint16_t dat)
     msgpk->msgpk_sz+=3;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_uint8(msgpk_t *msgpk, uint8_t dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 2,MSGPK_ERR);
 
@@ -1189,6 +1256,7 @@ int msgpk_add_uint8(msgpk_t *msgpk, uint8_t dat)
     msgpk->msgpk_buf[msgpk->msgpk_sz+1] = dat;
     msgpk->msgpk_sz += 2;
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_float64(msgpk_t *msgpk, double f)
@@ -1199,6 +1267,8 @@ int msgpk_add_float64(msgpk_t *msgpk, double f)
     }dat = {
         .f_f = f
     };
+    #if FILE_ENABLE
+    #else
 
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 9,MSGPK_ERR);
@@ -1208,6 +1278,7 @@ int msgpk_add_float64(msgpk_t *msgpk, double f)
     msgpk->msgpk_sz += 9;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_float32(msgpk_t *msgpk, float f)
@@ -1218,7 +1289,8 @@ int msgpk_add_float32(msgpk_t *msgpk, float f)
     }dat = {
         .f_f = f
     };
-
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 5,MSGPK_ERR);
 
@@ -1227,10 +1299,13 @@ int msgpk_add_float32(msgpk_t *msgpk, float f)
     msgpk->msgpk_sz += 5;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, len+6,MSGPK_ERR);
@@ -1242,10 +1317,13 @@ int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len)
     msgpk->msgpk_sz+= (len+6);
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, len+4,MSGPK_ERR);
@@ -1257,10 +1335,13 @@ int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len)
     msgpk->msgpk_sz+= (len+4);
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_ext8(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint8_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, len+3,MSGPK_ERR);
@@ -1272,10 +1353,13 @@ int msgpk_add_ext8(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint8_t len)
     msgpk->msgpk_sz+= (len+3);
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixext16(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, 18,MSGPK_ERR);
@@ -1286,10 +1370,13 @@ int msgpk_add_fixext16(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     msgpk->msgpk_sz+=18;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixext8(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, 10,MSGPK_ERR);
@@ -1300,10 +1387,13 @@ int msgpk_add_fixext8(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     msgpk->msgpk_sz+=10;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixext4(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, 6,MSGPK_ERR);
@@ -1314,10 +1404,13 @@ int msgpk_add_fixext4(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     msgpk->msgpk_sz+=6;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, 4,MSGPK_ERR);
@@ -1329,10 +1422,13 @@ int msgpk_add_fixext2(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     msgpk->msgpk_sz+=4;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if (type < 0)return MSGPK_ERR;
     MSGPK_REQCHK(msgpk, 3,MSGPK_ERR);
@@ -1343,10 +1439,13 @@ int msgpk_add_fixext1(msgpk_t *msgpk, int8_t type, uint8_t *dat)
     msgpk->msgpk_sz+=3;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_bin32(msgpk_t *msgpk, uint8_t *dat, uint32_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)len > 32) return MSGPK_ERR;
 
@@ -1364,10 +1463,13 @@ int msgpk_add_bin32(msgpk_t *msgpk, uint8_t *dat, uint32_t len)
     msgpk->msgpk_sz+=len;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_bin16(msgpk_t *msgpk, uint8_t *dat, uint16_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)len > 32) return MSGPK_ERR;
 
@@ -1383,10 +1485,13 @@ int msgpk_add_bin16(msgpk_t *msgpk, uint8_t *dat, uint16_t len)
     msgpk->msgpk_sz+=len;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)len > 32) return MSGPK_ERR;
 
@@ -1400,40 +1505,52 @@ int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len)
     msgpk->msgpk_sz+=len;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_true(msgpk_t *msgpk)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_TRUE;
     msgpk->msgpk_sz++;
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_false(msgpk_t *msgpk)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_FALSE;
     msgpk->msgpk_sz++;
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_nil(msgpk_t *msgpk)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     MSGPK_REQCHK(msgpk, 1,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_NIL;
     msgpk->msgpk_sz++;
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len)
 {
+    #if FILE_ENABLE
+    #else
     uint8_t hdr = 0;
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( len > 32) return MSGPK_ERR;
@@ -1449,10 +1566,13 @@ int msgpk_add_fixstr(msgpk_t *msgpk, char *str, uint8_t len)
     msgpk->msgpk_sz+=len;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)num > 16) return MSGPK_ERR;
 
@@ -1465,10 +1585,13 @@ int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num)
     msgpk->msgpk_sz++;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)num > 15) return MSGPK_ERR;
 
@@ -1481,10 +1604,13 @@ int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num)
     msgpk->msgpk_sz++;
 
     return MSGPK_OK;
+    #endif
 }
 
 int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
 {
+    #if FILE_ENABLE
+    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
     if ( (uint8_t)num > 127) return MSGPK_ERR;
 
@@ -1494,6 +1620,7 @@ int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num)
     msgpk->msgpk_buf[msgpk->msgpk_sz] = num;
     msgpk->msgpk_sz++;
     return MSGPK_OK;
+    #endif
 }
 
 /**
