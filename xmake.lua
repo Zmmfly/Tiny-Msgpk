@@ -1,9 +1,16 @@
 target("Tiny-Msgpk")
     set_kind("static")
-    add_files("src/*.c|test.c")
+    add_files("src/*.c|test.cpp")
     add_includedirs("include")
 
-target("Tiny-Msgpk_Test")
+target("test")
     set_kind("binary")
     add_files("src/*.c")
+    add_files("src/*.cpp|test_file.cpp")
+    add_includedirs("include")
+
+target("test_file")
+    set_kind("binary")
+    add_files("src/*.c")
+    add_files("src/*.cpp|test.cpp")
     add_includedirs("include")

@@ -1,7 +1,88 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <list>
 #include "tiny_msgpk.h"
+
+#define TYPE_MALLOC     1
+#define TYPE_CALLOC     2
+#define TYPE_REALLOC    3
+
+typedef struct allocate_info
+{
+    void *ptr;
+    uint8_t type;
+    size_t sz;
+}allocate_info_t;
+
+typedef std::list<allocate_info_t> allocate_info_list_t;
+
+allocate_info_list_t list;
+
+void *t_malloc(size_t sz)
+{
+    allocate_info_t info;
+    info.ptr = malloc(sz);
+    info.sz = sz;
+    if (info.ptr == NULL) return NULL;
+    info.type = TYPE_MALLOC;
+
+    list.push_back(info);
+    return info.ptr;
+}
+
+void *t_calloc(size_t elm_num, size_t elm_sz)
+{
+    allocate_info_t info;
+    info.ptr = calloc(elm_num, elm_sz);
+    info.sz = elm_num * elm_sz;
+    if (info.ptr == NULL) return NULL;
+    info.type = TYPE_CALLOC;
+
+    list.push_back(info);
+    return info.ptr;
+}
+
+void t_free(void *ptr)
+{
+    for (auto it = list.begin(); it != list.end(); it++) {
+        if (it->ptr == ptr) {
+            free(ptr);
+            list.erase(it);
+            return;
+        }
+    }
+}
+
+void *t_realloc(void *ptr, size_t sz)
+{
+    allocate_info_t info;
+    info.ptr = realloc(ptr, sz);
+    info.sz = sz;
+    if (info.ptr == NULL) return NULL;
+
+    for (auto it = list.begin(); it != list.end(); )
+    {
+        if (it->ptr == ptr) {
+            list.erase(it++);
+            break;
+        } else {
+            it++;
+        }
+    }
+
+    info.type = TYPE_REALLOC;
+
+    list.push_back(info);
+    return info.ptr;
+}
+
+msgpk_port_t port = {
+    .malloc  = t_malloc,
+    .calloc  = t_calloc,
+    .free    = t_free,
+    .realloc = t_realloc
+};
 
 void prHex(uint8_t *data, size_t len)
 {
@@ -110,6 +191,7 @@ void parse(uint8_t *dat, size_t length)
         }
     }
     while( !msgpk_parse_next(&parse) );
+    msgpk_parse_deinit(&parse);
     printf("end\n");
     return;
 }
@@ -117,6 +199,8 @@ void parse(uint8_t *dat, size_t length)
 int main(void)
 {
     msgpk_t *msgpk = NULL;
+
+    msgpk_set_port(&port);
 
     msgpk = msgpk_create(8, 4);
     msgpk_add_map(msgpk, 5);
@@ -213,5 +297,17 @@ int main(void)
     prHex(msgpk->msgpk_buf, msgpk->msgpk_sz);
     printf("Msgpk: bufsz(%u), msgsz(%u)\n", msgpk->buf_sz, msgpk->msgpk_sz);
     parse(msgpk->msgpk_buf, msgpk->msgpk_sz);
+    msgpk_delete(msgpk, 1, 1);
+
+    // mem leak check
+    if (list.size() > 0) {
+        printf("Had memory leak\n");
+        for (auto it = list.begin(); it != list.end(); it++) 
+        {
+            printf("Leak addr: %p, size: %u, type: %u\n", it->ptr, it->sz, it->type);
+        }
+        return 0;
+    }
+    printf("No memory leak\n");
     return 0;
 }

@@ -6,8 +6,14 @@
 #ifndef __TINY_MSGPK_H__
 #define __TINY_MSGPK_H__
 
+// Enable inline optimize
 #ifndef RDWR_INLINE
 #define RDWR_INLINE 0
+#endif
+
+// Enable parse number by function
+#ifndef PARSE_RDFN
+#define PARSE_RDFN 1
 #endif
 
 // Enable file encode or decode by 1, 0 for disable
@@ -114,9 +120,9 @@ typedef struct msgpk
     #if FILE_ENABLE
     FILE *msgpk_fd;
     #endif
-    size_t buf_sz;
+    uint64_t buf_sz;
     size_t buf_stepsz;
-    size_t msgpk_sz;
+    uint64_t msgpk_sz;
 }msgpk_t;
 
 typedef struct msgpk_parse
@@ -183,16 +189,22 @@ typedef struct msgpk_decode
 #define MSGPK_CHK(a,b) if((a)==NULL) return (b)
 #define MSGPK_REQCHK(msgpk, sz, ret) if (msgpk_buf_mem_require((msgpk), (sz)) == MSGPK_ERR)return (ret)
 
+int msgpk_write(msgpk_t *msgpk, void *data, size_t len);
 int msgpk_buf_mem_require(msgpk_t *msgpk, size_t require_sz);
+
 msgpk_t *msgpk_create(size_t init_sz, size_t step_sz);
+
+#if FILE_ENABLE
+#if ENCODE_INSIDE == 1
+msgpk_t *msgpk_file_create(const char *file_path, uint64_t maxLen);
+#else
+msgpk_t *msgpk_file_create(FILE *fd, int64_t maxLen);
+#endif
+int msgpk_file_done(msgpk_t *msgpk, uint8_t destory);
+#endif
+
 int msgpk_delete(msgpk_t *msgpk, uint8_t del_buf, uint8_t destory);
 void msgpk_free(void *ptr);
-
-#if ENCODE_INSIDE == 1
-msgpk_t *msgpk_create_file(const char *file_path, int64_t maxLen);
-#else
-msgpk_t *msgpk_create_file(FILE *fd, int64_t maxLen);
-#endif
 
 int msgpk_add_positive_fixint(msgpk_t *msgpk, int8_t num);
 int msgpk_add_negative_fixint(msgpk_t *msgpk, int8_t num);
@@ -241,7 +253,7 @@ int msgpk_add_ext32(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint32_t len);
 int msgpk_add_arr(msgpk_t *msgpk, uint32_t num);
 int msgpk_add_fixarr(msgpk_t *msgpk, uint8_t num);
 int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num);
-int msgpk_add_arr32(msgpk_t *msgpk, uint16_t num);
+int msgpk_add_arr32(msgpk_t *msgpk, uint32_t num);
 
 int msgpk_add_map(msgpk_t *msgpk, uint32_t num);
 int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num);
@@ -252,14 +264,15 @@ int msgpk_parse_next(msgpk_parse_t *parse);
 int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec);
 uint8_t msgpk_parse_get_currnet_byte(msgpk_parse_t *parse, size_t offset);
 uint8_t msgpk_parse_get_currnet_flag(msgpk_parse_t *parse);
+int8_t msgpk_parse_get_multi_bytes(msgpk_parse_t *parse, size_t sz, uint8_t *buf, int8_t offset);
 uint8_t *msgpk_parse_get_buf(msgpk_parse_t *parse, size_t offset, size_t length);
 int msgpk_parse_deinit(msgpk_parse_t *parse);
 int msgpk_parse_init(msgpk_parse_t *parse, uint8_t *dat, size_t length);
 
 #if PARSE_INSIDE == 1
-int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, const char *file_path);
+int msgpk_parse_init_file(msgpk_parse_t *parse, const char *file_path);
 #else
-int msgpk_parse_init_file(msgpk_parse_t *parse, msgpk_decode_t *decoded, FILE *fd);
+int msgpk_parse_init_file(msgpk_parse_t *parse, FILE *fd);
 #endif
 
 void msgpk_set_port(msgpk_port_t *port);
