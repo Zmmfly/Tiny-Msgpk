@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Tiny-Msgpk",
+            "includePath": [
+                "${workspaceFolder}/include"
+            ],
+            "defines": [
+                "TINY_MSGPK"
+            ],
+            "intelliSenseMode":"clang-arm"
+        }
+    ],
+    "version": 4
+}

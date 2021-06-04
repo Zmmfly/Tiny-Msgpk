@@ -2,7 +2,7 @@
 *.d
 .xmake
 build
-.vscode
+.vscode/compile_commands.json
 
 # Object files
 *.o
