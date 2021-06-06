@@ -1111,9 +1111,15 @@ int msgpk_add_arr16(msgpk_t *msgpk, uint16_t num)
 
 int msgpk_add_str32(msgpk_t *msgpk, char *str, uint32_t len)
 {
-    #if FILE_ENABLE
-    #else
     MSGPK_CHK(msgpk,MSGPK_ERR);
+    #if FILE_ENABLE
+    uint8_t ch = FMTF_STR32;
+    uint8_t buf[4];
+
+    msgpk_wr_u32_bigend(buf, len);
+    msgpk_write(msgpk, &ch, 1);
+    return msgpk_write(msgpk, buf, 4);
+    #else
     MSGPK_REQCHK(msgpk, len+5,MSGPK_ERR);
 
     msgpk->msgpk_buf[msgpk->msgpk_sz] = FMTF_STR32;
@@ -1433,7 +1439,7 @@ int msgpk_add_ext16(msgpk_t *msgpk, int8_t type, uint8_t *dat, uint16_t len)
 
     msgpk_write(msgpk, &ch, 1);
     msgpk_write(msgpk, buf, 2);
-    msgpk_write(msgpk, dat, len);
+    return msgpk_write(msgpk, dat, len);
     #else
     MSGPK_REQCHK(msgpk, len+4,MSGPK_ERR);
 
