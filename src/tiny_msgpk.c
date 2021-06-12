@@ -688,15 +688,17 @@ uint8_t msgpk_parse_get_currnet_flag(msgpk_parse_t *parse)
 int msgpk_parse_deinit(msgpk_parse_t *parse)
 {
     MSGPK_CHK(parse, MSGPK_ERR);
-    if (parse->pk) {
-        hooks.free(parse->pk);
-    }
 
     #if FILE_ENABLE
     if (parse->pk->msgpk_fd) {
         fclose(parse->pk->msgpk_fd);
     }
     #endif
+
+    if (parse->pk) {
+        hooks.free(parse->pk);
+    }
+
     return MSGPK_OK;
 }
 
