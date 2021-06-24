@@ -24,7 +24,7 @@ int msgpk_parse_next(msgpk_parse_t *parse)
 }
 
 /**
- * @brief Clean decode struct
+ * @brief Clean decode struct, only for file decode
  * 
  * @param dec 
  * @return int MSGPK_ERR on dec null, MSGPK_OK on succ
@@ -77,10 +77,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
     MSGPK_CHK(parse,MSGPK_ERR);
     MSGPK_CHK(dec,MSGPK_ERR);
 
-    // if (dec->str != NULL && parse->pk->msgpk_fd) {
-    //     hooks.free(dec->str);
-    //     dec->str = NULL;
-    // }
+    if (dec->str != NULL && parse->pk->msgpk_fd) {
+        msgpk_decode_clean(dec);
+        dec->str = NULL;
+    }
 
     // if (dec->bin != NULL && parse->pk->msgpk_fd) {
     //     hooks.free(dec->bin);
@@ -93,7 +93,7 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
     // }
 
     // uint8_t *buf = parse->pk->msgpk_buf;
-    dec->u64 = 0;
+    // dec->u64 = 0;
     memset(buf, 0, 8);
 
     // uint8_t flag = buf[parse->idx_cur];
