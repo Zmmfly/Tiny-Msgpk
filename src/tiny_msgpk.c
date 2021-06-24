@@ -59,7 +59,7 @@ int msgpk_decode_clean(msgpk_decode_t *dec)
  * @brief Get current index type and data
  * 
  * @param parse Parse struct pointer
- * @param dec   Decode struct pointer
+ * @param dec   Decode struct pointer, need initialize before using
  * @return int 
  */
 int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
