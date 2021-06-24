@@ -34,31 +34,21 @@ int msgpk_decode_clean(msgpk_decode_t *dec)
     MSGPK_CHK(dec,MSGPK_ERR);
 
     switch(dec->type_dec) {
-        case FMTF_FIXSTR:
-        case FMTF_STR8:
-        case FMTF_STR16:
-        case FMTF_STR32:
+        case MSGPK_STRING:
             if (dec->str) {
                 hooks.free(dec->str);
                 dec->str = NULL;
             }
             break;
 
-        case FMTF_BIN8:
-        case FMTF_BIN16:
-        case FMTF_BIN32:
-        case FMTF_FIXEXT1:
-        case FMTF_FIXEXT2:
-        case FMTF_FIXEXT4:
-        case FMTF_FIXEXT8:
-        case FMTF_FIXEXT16:
-        case FMTF_EXT8:
-        case FMTF_EXT16:
-        case FMTF_EXT32:
+        case MSGPK_BIN:
+        case MSGPK_EXT:
             if (dec->bin) {
                 hooks.free(dec->bin);
                 dec->bin = NULL;
             }
+            break;
+        default:
             break;
     }
     memset(dec, 0, sizeof(msgpk_decode_t));
