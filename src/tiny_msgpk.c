@@ -24,6 +24,48 @@ int msgpk_parse_next(msgpk_parse_t *parse)
 }
 
 /**
+ * @brief Clean decode struct
+ * 
+ * @param dec 
+ * @return int MSGPK_ERR on dec null, MSGPK_OK on succ
+ */
+int msgpk_decode_clean(msgpk_decode_t *dec)
+{
+    MSGPK_CHK(dec,MSGPK_ERR);
+
+    switch(dec->type_dec) {
+        case FMTF_FIXSTR:
+        case FMTF_STR8:
+        case FMTF_STR16:
+        case FMTF_STR32:
+            if (dec->str) {
+                hooks.free(dec->str);
+                dec->str = NULL;
+            }
+            break;
+
+        case FMTF_BIN8:
+        case FMTF_BIN16:
+        case FMTF_BIN32:
+        case FMTF_FIXEXT1:
+        case FMTF_FIXEXT2:
+        case FMTF_FIXEXT4:
+        case FMTF_FIXEXT8:
+        case FMTF_FIXEXT16:
+        case FMTF_EXT8:
+        case FMTF_EXT16:
+        case FMTF_EXT32:
+            if (dec->bin) {
+                hooks.free(dec->bin);
+                dec->bin = NULL;
+            }
+            break;
+    }
+    memset(dec, 0, sizeof(msgpk_decode_t));
+    return MSGPK_OK;
+}
+
+/**
  * @brief Get current index type and data
  * 
  * @param parse Parse struct pointer
@@ -45,10 +87,10 @@ int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec)
     MSGPK_CHK(parse,MSGPK_ERR);
     MSGPK_CHK(dec,MSGPK_ERR);
 
-    if (dec->str != NULL && parse->pk->msgpk_fd) {
-        hooks.free(dec->str);
-        dec->str = NULL;
-    }
+    // if (dec->str != NULL && parse->pk->msgpk_fd) {
+    //     hooks.free(dec->str);
+    //     dec->str = NULL;
+    // }
 
     // if (dec->bin != NULL && parse->pk->msgpk_fd) {
     //     hooks.free(dec->bin);

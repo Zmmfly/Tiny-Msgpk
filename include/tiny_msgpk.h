@@ -260,6 +260,7 @@ int msgpk_add_fixmap(msgpk_t *msgpk, uint8_t num);
 int msgpk_add_map16(msgpk_t *msgpk, uint16_t num);
 int msgpk_add_map32(msgpk_t *msgpk, uint32_t num);
 
+int msgpk_decode_clean(msgpk_decode_t *dec);
 int msgpk_parse_next(msgpk_parse_t *parse);
 int msgpk_parse_get(msgpk_parse_t *parse, msgpk_decode_t *dec);
 uint8_t msgpk_parse_get_currnet_byte(msgpk_parse_t *parse, size_t offset);
