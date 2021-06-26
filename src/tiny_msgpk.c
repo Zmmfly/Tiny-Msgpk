@@ -1756,7 +1756,7 @@ int msgpk_add_bin8(msgpk_t *msgpk, uint8_t *dat, uint8_t len)
     uint8_t ch = FMTF_BIN8;
 
     msgpk_write(msgpk, &ch, 1);
-    msgpk_write(msgpk, &len, 4);
+    msgpk_write(msgpk, &len, 2);
     return msgpk_write(msgpk, dat, len);
 
     #else
