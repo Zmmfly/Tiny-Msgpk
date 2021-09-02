@@ -1926,7 +1926,8 @@ int msgpk_write(msgpk_t *msgpk, void *data, size_t len)
     #endif
 
     MSGPK_CHK(msgpk,MSGPK_ERR);
-    if (msgpk == NULL || data == NULL || len == 0)return MSGPK_ERR;
+    if (msgpk == NULL || data == NULL)return MSGPK_ERR;
+    if (len == 0) return MSGPK_OK;
 
     #if FILE_ENABLE
     if (msgpk->msgpk_fd == NULL) {
