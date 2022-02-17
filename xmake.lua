@@ -1,7 +1,7 @@
 target("Tiny-Msgpk")
     set_kind("static")
     add_files("src/*.c|test.cpp")
-    add_includedirs("include")
+    add_includedirs("include", {public=true})
 
 target("test")
     set_kind("binary")
